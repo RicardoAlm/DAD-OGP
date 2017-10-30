@@ -45,11 +45,12 @@ namespace pacman {
         //int player = Client.GetPlayer();
 
         Client client = null;
+        public delegate void UpdateChat(string msg);
 
         public Form1() {
             InitializeComponent();
             //if (client == null)
-            client = new Client(this);
+            client = new Client(this, new UpdateChat(this.UpdateChat));
             label2.Visible = false;
         }
 

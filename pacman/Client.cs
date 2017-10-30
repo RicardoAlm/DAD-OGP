@@ -17,9 +17,6 @@ namespace pacman
 {
     class Client
     {
-        private Form1 f; //=  Program.GetForm();
-
-        public delegate void DelDisplay(string msg);
         private TcpChannel channel = null;
         private IPacmanPlatform server;
         private PacmanClientObject client;
@@ -28,11 +25,10 @@ namespace pacman
         //private string nickname;
         private int player;
 
-        public Client(Form1 form)
+        public Client(Form1 form, Delegate d)
         {
-            f = form;
             Debug.WriteLine("Connecting to server...");
-            ConnectToServer();
+            ConnectToServer(form, d);
             Debug.WriteLine("Connected to server");
             Debug.WriteLine("Updating Clients list...");
            // server.GetClients(port.ToString());
@@ -40,7 +36,7 @@ namespace pacman
 
         }
 
-        public void ConnectToServer()
+        public void ConnectToServer(Form f, Delegate d)
         {
 
             Random rnd = new Random();
@@ -54,7 +50,7 @@ namespace pacman
                     typeof(PacmanServerObject),
                     "tcp://localhost:8086/PacmanServerObject");
 
-                client = new PacmanClientObject(f, new DelDisplay(this.Display));
+                client = new PacmanClientObject(f, d);
                 RemotingServices.Marshal(client, "PacmanClientObject",
                     typeof(PacmanClientObject));
 
@@ -100,11 +96,6 @@ namespace pacman
         public void BroadcastChatMsg(string ChatMsg)
         {
             client.SendMessage(ChatMsg);
-        }
-
-        public void Display(string msg)
-        {
-            f.UpdateChat(msg);
         }
 
         private bool CheckAvailableServerPort(int port)
