@@ -48,8 +48,8 @@ namespace pacman {
 
         public Form1() {
             InitializeComponent();
-            if (client == null)
-                client = new Client(this);
+            //if (client == null)
+            client = new Client(this);
             label2.Visible = false;
         }
 
@@ -198,11 +198,29 @@ namespace pacman {
 
         private void tbMsg_KeyDown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Enter) {
-                tbChat.Text += "\r\n" + tbMsg.Text; tbMsg.Clear(); tbMsg.Enabled = false; this.Focus();
+                tbChat.Text += "\r\n" + client.GetPort() + ":" + tbMsg.Text;
+                client.BroadcastChatMsg("\r\n" + client.GetPort() + ":" + tbMsg.Text);
+                tbMsg.Clear(); tbMsg.Enabled = false; this.Focus();
+                
             }
         }
 
+        public void UpdateChat(string msg)
+        {
+            tbChat.Text += msg;
+        }
+
         private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void tbMsg_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void tbChat_TextChanged(object sender, EventArgs e)
         {
 
         }

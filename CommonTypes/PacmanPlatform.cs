@@ -12,15 +12,17 @@ namespace pacman
     {
 
         private int MSEC_PER_ROUND;
+        private int MAX_PLAYERS;
         private Dictionary<int, string> playermoves;
         private Dictionary<string, PacmanClientObject> clients;
+        private int players;
         private int player;
 
         public PacmanServerObject()
         {
             playermoves = new Dictionary<int, string>();
             clients = new Dictionary<string, PacmanClientObject>();
-            player = 0;
+            players = 0;
         }
 
         public void Register(string nick, string url)
@@ -38,7 +40,10 @@ namespace pacman
                 {
                     Debug.WriteLine("Adding Client to List...");
                     lock (clients)
+                    {
                         clients.Add(nick, remoteObj);
+                        players++;
+                    }
                     Debug.WriteLine("Client Added");
                 }
             }
@@ -46,6 +51,18 @@ namespace pacman
             {
                 //TODO: Exception->nick already exists
             }
+        }
+
+        public void SetMAXPLAYERS(int max)
+        {
+            MAX_PLAYERS = max;
+            new Thread(() => 
+                {
+                    while (players != MAX_PLAYERS)
+                    {
+
+                    }
+                });
         }
 
 
@@ -69,7 +86,7 @@ namespace pacman
         {
             new Thread(() =>
             {
-                clients[nick].GetClients(clients);
+                clients[nick].GetServerClients(clients, nick);
             });
         }
 
@@ -96,15 +113,32 @@ namespace pacman
             displaydelegate = d;
         }
 
-        public void GetClients(Dictionary<string, PacmanClientObject> cs)
+        //---------------------Server Side-----------------------------------------------
+        //TODO -> Remove Myself From The List
+        public void GetServerClients(Dictionary<string, PacmanClientObject> cs, string nick)
         {
             clients = cs;
+            clients.Remove(nick);
         }
 
         public void DisplayMessage(string msg)
         {
             _form.Invoke(displaydelegate, new object[] { msg });
         }
+        //---------------------Peer Side-----------------------------------------------
+        
+
+        public void SendMessage(string msg)
+        {
+            new Thread(() =>
+            {
+                foreach (PacmanClientObject c in clients.Values)
+                {
+                    c.DisplayMessage(msg);
+                }
+            });
+        }
+
 
     }
 }

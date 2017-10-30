@@ -11,6 +11,7 @@ using System.Net.NetworkInformation;
 using System.Net;
 using System.Net.Sockets;
 using System.Diagnostics;
+using System.Threading;
 
 namespace pacman
 {
@@ -34,7 +35,7 @@ namespace pacman
             ConnectToServer();
             Debug.WriteLine("Connected to server");
             Debug.WriteLine("Updating Clients list...");
-            server.GetClients(port.ToString());
+           // server.GetClients(port.ToString());
             Debug.WriteLine("Clients list Updated");
 
         }
@@ -94,14 +95,16 @@ namespace pacman
             */
         }
 
+        public string GetPort() { return port.ToString(); }
+
         public void BroadcastChatMsg(string ChatMsg)
         {
-
+            client.SendMessage(ChatMsg);
         }
 
         public void Display(string msg)
         {
-            
+            f.UpdateChat(msg);
         }
 
         private bool CheckAvailableServerPort(int port)

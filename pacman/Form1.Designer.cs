@@ -949,6 +949,7 @@
             this.tbMsg.Name = "tbMsg";
             this.tbMsg.Size = new System.Drawing.Size(100, 20);
             this.tbMsg.TabIndex = 143;
+            this.tbMsg.TextChanged += new System.EventHandler(this.tbMsg_TextChanged);
             this.tbMsg.KeyDown += new System.Windows.Forms.KeyEventHandler(this.tbMsg_KeyDown);
             // 
             // tbChat
@@ -959,6 +960,7 @@
             this.tbChat.Name = "tbChat";
             this.tbChat.Size = new System.Drawing.Size(100, 255);
             this.tbChat.TabIndex = 144;
+            this.tbChat.TextChanged += new System.EventHandler(this.tbChat_TextChanged);
             // 
             // Form1
             // 
