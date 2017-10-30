@@ -4,23 +4,22 @@ using System.Text;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
+using System.Diagnostics;
 
 namespace pacman
 {
-    
     public class Server
     {
-        private void StartServer()
+        public Server()
         {
+            Debug.WriteLine("Starting Server...");
             TcpChannel channel = new TcpChannel(8086);
             ChannelServices.RegisterChannel(channel, true);
-            List<string> lista = new List<string>();
-
             RemotingConfiguration.RegisterWellKnownServiceType(
-                typeof(PacmanRemoteObject),
-                "PacmanRemoteObject",
+                typeof(PacmanServerObject),
+                "PacmanServerObject",
                 WellKnownObjectMode.Singleton);
-            
+            Debug.WriteLine("Server Up");
         }
 
         

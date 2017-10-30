@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -40,12 +41,15 @@ namespace pacman {
         // Client clt = new Client();
         int player;
         // int player = clt.GetPlayer();
-        
+
         //int player = Client.GetPlayer();
 
+        Client client = null;
 
         public Form1() {
             InitializeComponent();
+            if (client == null)
+                client = new Client(this);
             label2.Visible = false;
         }
 
@@ -196,6 +200,11 @@ namespace pacman {
             if (e.KeyCode == Keys.Enter) {
                 tbChat.Text += "\r\n" + tbMsg.Text; tbMsg.Clear(); tbMsg.Enabled = false; this.Focus();
             }
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }
