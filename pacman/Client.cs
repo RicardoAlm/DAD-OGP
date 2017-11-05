@@ -30,9 +30,9 @@ namespace pacman
             Debug.WriteLine("Connecting to server...");
             ConnectToServer(form, d);
             Debug.WriteLine("Connected to server");
-            Debug.WriteLine("Updating Clients list...");
-           // server.GetClients(port.ToString());
-            Debug.WriteLine("Clients list Updated");
+           /* Debug.WriteLine("Updating Clients list...");
+            server.GetClients(port.ToString());
+            Debug.WriteLine("Clients list Updated");*/
 
         }
 
@@ -67,11 +67,6 @@ namespace pacman
             
             //player = server.NamePlayer();
             //we need number of players to create them in form
-        }
-
-        public void SendInput()
-        {
-            server.GetKeyboardInput(player, f.GetKeyInput());
         }
 
 

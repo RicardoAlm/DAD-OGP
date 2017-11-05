@@ -50,7 +50,7 @@ namespace pacman {
         public Form1() {
             InitializeComponent();
             //if (client == null)
-            client = new Client(this, new UpdateChat(this.UpdateChat));
+            client = new Client(this, new UpdateChat(this.ChangeChat));
             label2.Visible = false;
         }
 
@@ -206,7 +206,7 @@ namespace pacman {
             }
         }
 
-        public void UpdateChat(string msg)
+        public void ChangeChat(string msg)
         {
             tbChat.Text += msg;
         }
