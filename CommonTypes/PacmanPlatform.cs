@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Collections;
 using System.Threading;
 using System.Linq;
+using System.Runtime.Serialization.Formatters;
 
 namespace pacman
 {
@@ -14,9 +15,11 @@ namespace pacman
  
         private int MSEC_PER_ROUND;
         private int MAX_PLAYERS;
+        private int ROUND;
         private Dictionary<int, string> playermoves;
         private Dictionary<string, PacmanClientObject> clients;
         private int players;
+        private System.Windows.Forms.Timer timer1;
 
         public PacmanServerObject()
         {
@@ -61,17 +64,36 @@ namespace pacman
                 while (players != MAX_PLAYERS) { }
                 foreach (string client_nick in clients.Keys)
                 {
+                    //Debug.WriteLine("NICK: " + client_nick);
                     clients[client_nick].GetServerClients(client_nick, clients);
                 }
             }).Start();
         }
 
 
-
-        public void GetKeyboardInput(int player, string key)
-        {
-            playermoves.Add(player, key);            
+        //--- Server methods ---
+       
+        public void GetKeyboardInput(int player, string key) {
+            playermoves.Add(player, key);
         }
+
+        public void WaitForClientsInput()
+        {
+   
+        }
+
+        public void ComputeUpdates() //calcula state
+        {
+            NextRound();
+        }
+
+        public void SendStateUpdate() { }
+
+        public void NextRound() //So para o server o envia para clientes tambem?
+        {
+            this.ROUND++;
+        }
+
 
         /*public hashtable MovePlayer()
          * {
@@ -92,6 +114,8 @@ namespace pacman
         private List<int> msg_seq_vector;
         private Dictionary<string, PacmanClientObject> clients;
         private Dictionary<Dictionary <List<int>, string>, int> message_queue;
+        public string playermove;
+        public int ROUND;
 
         public PacmanClientObject(Form form, Delegate d)
         {
@@ -102,6 +126,7 @@ namespace pacman
         //---------------------Server Side-----------------------------------------------
         public void GetServerClients(string nick, Dictionary<string, PacmanClientObject> cs)
         {
+            Debug.WriteLine("ENTERED in GETSERVERCLIENTS!!!!");
             int i=0;
             clients = cs;
             foreach (string n in cs.Keys)
@@ -114,7 +139,11 @@ namespace pacman
             Debug.WriteLine("List Updated");
         }
 
+        //---Client Methods ---
 
+
+        public void WaitForStateUpdate() { }
+        //---------------------Peer Side-----------------------------------------------
         /// <summary>
         /// Receives a message from a machine with his correspondent id message vector.
         /// Verifies each position of the id vector received with its own. If there is a 
@@ -198,10 +227,10 @@ namespace pacman
             return false;
         }
 
-        //---------------------Peer Side-----------------------------------------------
 
 
-    public void SendMessage(string msg)
+
+        public void SendMessage(string msg)
         {
             new Thread(() =>
             {

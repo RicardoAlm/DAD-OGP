@@ -206,6 +206,15 @@ namespace pacman {
             }
         }
 
+        public void SendInput(object sender, KeyEventArgs e)
+        {
+            string move = GetKeyInput();
+            if(move != null)
+            {
+                client.SendInput(move);
+            }
+        }
+
         public void ChangeChat(string msg)
         {
             tbChat.Text += msg;

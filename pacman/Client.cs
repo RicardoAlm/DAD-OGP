@@ -15,7 +15,7 @@ using System.Threading;
 
 namespace pacman
 {
-    class Client
+    class Client 
     {
         private TcpChannel channel = null;
         private IPacmanPlatform server;
@@ -84,6 +84,12 @@ namespace pacman
              * 
 
             */
+        }
+
+        public void SendInput(string move)
+        {
+            server.GetKeyboardInput(player, move);
+            //client.SetInput(move.ToString());
         }
 
         public string GetPort() { return port.ToString(); }
