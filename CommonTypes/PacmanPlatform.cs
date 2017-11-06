@@ -16,6 +16,7 @@ namespace pacman
         private int MSEC_PER_ROUND;
         private int MAX_PLAYERS;
         private int ROUND;
+        private List<string> urls;
         private Dictionary<int, string> playermoves;
         private Dictionary<string, PacmanClientObject> clients;
         private int players;
@@ -25,6 +26,7 @@ namespace pacman
         {
             playermoves = new Dictionary<int, string>();
             clients = new Dictionary<string, PacmanClientObject>();
+            urls = new List<string>();
             players = 0;
         }
 
@@ -45,6 +47,7 @@ namespace pacman
                     lock (clients)
                     {
                         clients.Add(nick, remoteObj);
+                        urls.Add(url);
                         players++;
                     }
                     Debug.WriteLine("Client Added");
@@ -56,16 +59,17 @@ namespace pacman
             }
         }
 
-        public void SetMAXPLAYERS(int max)
+        public void SetMaxplayers(int max)
         {
             MAX_PLAYERS = max;
             new Thread(() =>
             {
+                int id = 0;
                 while (players != MAX_PLAYERS) { }
-                foreach (string client_nick in clients.Keys)
+                foreach(string clientNick in clients.Keys)
                 {
-                    //Debug.WriteLine("NICK: " + client_nick);
-                    clients[client_nick].GetServerClients(client_nick, clients);
+                    clients[clientNick].GetServerClients(clientNick, urls, id);
+                    id++;
                 }
             }).Start();
         }
@@ -108,34 +112,41 @@ namespace pacman
 
     public class PacmanClientObject : MarshalByRefObject
     {
-        Form _form;
-        Delegate displaydelegate;
+        readonly Form _form;
+        readonly Delegate _displaydelegate;
         private int _id;
-        private List<int> msg_seq_vector;
-        private Dictionary<string, PacmanClientObject> clients;
-        private Dictionary<Dictionary <List<int>, string>, int> message_queue;
+        private List<int> _msgSeqVector;
+        private readonly List <PacmanClientObject> _clients;
+        private readonly Dictionary<Dictionary <List<int>, string>, int> _messageQueue;
         public string playermove;
         public int ROUND;
 
         public PacmanClientObject(Form form, Delegate d)
         {
             _form = form;
-            displaydelegate = d;
+            _displaydelegate = d;
+            _clients = new List<PacmanClientObject>();
+            _messageQueue = new Dictionary<Dictionary<List<int>, string>, int>();
         }
 
         //---------------------Server Side-----------------------------------------------
-        public void GetServerClients(string nick, Dictionary<string, PacmanClientObject> cs)
+        public void GetServerClients(string nick, List<string> urls, int id)
         {
-            Debug.WriteLine("ENTERED in GETSERVERCLIENTS!!!!");
-            int i=0;
-            clients = cs;
-            foreach (string n in cs.Keys)
+            _id = id;
+            _msgSeqVector = new List<int>(urls.Count);
+            for (int i = 0; i < urls.Count ; i++ )
             {
-                if (nick.Equals(n))
-                    _id = i;
-                i++;
+                _msgSeqVector.Insert(i,0);
+                if (i != id)
+                {
+                    PacmanClientObject remoteObj = (PacmanClientObject)Activator.GetObject(
+                        typeof(PacmanClientObject),
+                        urls[i]);
+                    _clients.Add(remoteObj);
+                }
             }
-            clients.Remove(nick);
+
+            Debug.WriteLine(_clients.Count);
             Debug.WriteLine("List Updated");
         }
 
@@ -153,25 +164,25 @@ namespace pacman
         /// After this process we check the queue to see if we can display new messages to the user.
         /// </summary>
         /// <param name="msg">Message to display</param>
-        /// <param name="id_vector">Id vector of the sending machine </param>
+        /// <param name="idVector">Id vector of the sending machine </param>
         /// <param name="id">Sending machine id</param>
-        public void DisplayMessage(string msg, List<int> id_vector, int id)
+        public void DisplayMessage(string msg, List<int> idVector, int id)
         {
             new Thread(() =>
            {
-               bool message_added_queue = false;
-               for (int i = 0; i <= id_vector.Count; i++)
+               bool messageAddedQueue = false;
+               for (int i = 0; i < idVector.Count; i++)
                {
-                   if ((id_vector[i] - msg_seq_vector[i]) > 0 && i != id)
+                   if ((idVector[i] - _msgSeqVector[i]) > 0 && i != id)
                    {
-                       message_queue.Add(new Dictionary<List<int>, string> { { id_vector, msg } }, id);
-                       message_added_queue = true;
+                       _messageQueue.Add(new Dictionary<List<int>, string> { { idVector, msg } }, id);
+                       messageAddedQueue = true;
                    }
                }
-               if (!message_added_queue)
+               if (!messageAddedQueue)
                {
-                   msg_seq_vector[id]++;
-                   _form.Invoke(displaydelegate, new object[] { msg });
+                   _msgSeqVector[id]++;
+                   _form.Invoke(_displaydelegate, new object[] { msg });
                    VerifyMessage();
                }
            }).Start();
@@ -186,10 +197,10 @@ namespace pacman
         public void VerifyMessage()
         {
             bool changes = false;
-            foreach (Dictionary<List<int>, string> d in message_queue.Keys)
+            foreach (Dictionary<List<int>, string> d in _messageQueue.Keys)
             {
                 foreach (List<int> l in d.Keys)
-                    changes = VerifyMessage_aux(d[l], l, message_queue[d]);
+                    changes = VerifyMessage_aux(d[l], l, _messageQueue[d]);
             }
             if (changes)
                 VerifyMessage();
@@ -204,24 +215,24 @@ namespace pacman
         /// Return false if we didnt.
         /// </summary>
         /// <param name="msg"></param>
-        /// <param name="id_vector"></param>
+        /// <param name="idVector"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        public bool VerifyMessage_aux(string msg, List<int> id_vector, int id)
+        public bool VerifyMessage_aux(string msg, List<int> idVector, int id)
         {
-            bool  no_changes = false;
-            for (int i = 0; i <= id_vector.Count; i++)
+            bool  noChanges = false;
+            for (int i = 0; i <= idVector.Count; i++)
             {
-                if ((id_vector[i] - msg_seq_vector[i]) > 0 && i != id)
+                if ((idVector[i] - _msgSeqVector[i]) > 0 && i != id)
                 {
-                    no_changes = true;
+                    noChanges = true;
                 }
             }
-            if (!no_changes)
+            if (!noChanges)
             {
-                msg_seq_vector[id]++;
-                _form.Invoke(displaydelegate, new object[] { msg });
-                message_queue.Remove(new Dictionary<List<int>, string> { { id_vector, msg } });
+                _msgSeqVector[id]++;
+                _form.Invoke(_displaydelegate, new object[] { msg });
+                _messageQueue.Remove(new Dictionary<List<int>, string> { { idVector, msg } });
                 return true;
             }
             return false;
@@ -234,10 +245,10 @@ namespace pacman
         {
             new Thread(() =>
             {
-                foreach (PacmanClientObject c in clients.Values)
+                foreach (PacmanClientObject c in _clients)
                 {
-                    msg_seq_vector[_id]++;
-                    c.DisplayMessage(msg, msg_seq_vector, _id);
+                    _msgSeqVector[_id]++;
+                    c.DisplayMessage(msg, _msgSeqVector, _id);
                 }
             }).Start();
         }

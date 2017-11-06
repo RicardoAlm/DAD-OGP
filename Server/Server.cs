@@ -33,7 +33,7 @@ namespace pacman
         }
 
         public void SetMAXPLAYERS(int max) { 
-            server.SetMAXPLAYERS(max); 
+            server.SetMaxplayers(max); 
         }
 
 
