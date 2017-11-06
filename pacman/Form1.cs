@@ -50,6 +50,7 @@ namespace pacman {
         public Form1() {
             InitializeComponent();
             //if (client == null)
+            DrawPacmans();
             client = new Client(this, new UpdateChat(this.ChangeChat));
             label2.Visible = false;
         }
@@ -93,6 +94,7 @@ namespace pacman {
             if (e.KeyCode == Keys.Down) {
                 godown = true;
                 pacman.Image = Properties.Resources.down;
+                //DrawPacmans(); //here
             }
             if (e.KeyCode == Keys.Enter) {
                     tbMsg.Enabled = true; tbMsg.Focus();
@@ -112,6 +114,37 @@ namespace pacman {
             if (e.KeyCode == Keys.Down) {
                 godown = false;
             }
+        }
+
+        private void DrawPacmans() //Quando state estiver implementado, para cada player desenhar na posicao e direcao indicada, recebe state
+            //fazer funcao para initial state
+
+        //state tem que ter : direcao e posicao de cada cliente, moedas "comidas",
+        {
+            //e preciso ir buscar lista de clientes ou numero
+            List<int> clients = new List<int>(); //lista para testar
+            clients.Add(1);
+            clients.Add(2);
+            clients.Add(3);
+            clients.Add(4);
+            //for player in playerList:
+            //string name = string.Concat("pacman", i.ToString());
+            //PictureBox pacman1 = new PictureBox { Image = global::pacman.Properties.Resources.Left , Width = pacman.Width ,Height=pacman.Height};
+            foreach (int player in clients) {
+                //add condition para nao desenhar o proprio player!=_id
+                PictureBox pacman1 = new PictureBox();
+                pacman1.BackColor = System.Drawing.Color.Transparent;
+                pacman1.Image = global::pacman.Properties.Resources.Left;
+                pacman1.Location = new System.Drawing.Point(8, player * 40);
+                pacman1.Margin = new System.Windows.Forms.Padding(0);
+                pacman1.Name = "pacman" + player.ToString();
+                pacman1.Size = new System.Drawing.Size(25, 25);
+                pacman1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+                pacman1.TabIndex = 4;
+                pacman1.TabStop = false;
+                this.Controls.Add(pacman1);
+            }
+            
         }
 
         private void timer1_Tick(object sender, EventArgs e) {
@@ -234,5 +267,6 @@ namespace pacman {
         {
 
         }
+
     }
 }
