@@ -65,7 +65,7 @@ namespace pacman
             new Thread(() =>
             {
                 int id = 0;
-                while (players != MAX_PLAYERS) { }
+                while (players != MAX_PLAYERS) { Thread.Sleep(1); } 
                 foreach(string clientNick in clients.Keys)
                 {
                     clients[clientNick].GetServerClients(clientNick, urls, id);
@@ -77,23 +77,32 @@ namespace pacman
 
         //--- Server methods ---
        
-        public void GetKeyboardInput(int player, string key) {
-            playermoves.Add(player, key);
+        public void GetKeyboardInput(int player, string key , int roundId) {
+            if(this.ROUND == roundId)
+                playermoves.Add(player, key);
         }
 
-        public void WaitForClientsInput()
+
+        //espera MSEC_PER_ROUND pelo input dos clientes, apos esse tempo chama ComputeStates() para gerar o proximo estado 
+        public void WaitForClientsInput() 
         {
-   
+            new Thread(() =>
+            {
+                Thread.Sleep(MSEC_PER_ROUND); //+delay?
+                ComputeUpdates();
+
+
+            }).Start();
         }
 
-        public void ComputeUpdates() //calcula state
+            public void ComputeUpdates() //calcula state
         {
             NextRound();
         }
 
         public void SendStateUpdate() { }
 
-        public void NextRound() //So para o server o envia para clientes tambem?
+        public void NextRound()
         {
             this.ROUND++;
         }
@@ -118,7 +127,7 @@ namespace pacman
         private List<int> _msgSeqVector;
         private readonly List <PacmanClientObject> _clients;
         private readonly Dictionary<Dictionary <List<int>, string>, int> _messageQueue;
-        public string playermove;
+        public string playermove; 
         public int ROUND;
 
         public PacmanClientObject(Form form, Delegate d)

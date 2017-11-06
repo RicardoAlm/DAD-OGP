@@ -21,7 +21,7 @@ namespace pacman
         private IPacmanPlatform server;
         private PacmanClientObject client;
         private int port;
-
+        private int ROUND = 0;
         //private string nickname;
         private int player;
 
@@ -88,8 +88,8 @@ namespace pacman
 
         public void SendInput(string move)
         {
-            server.GetKeyboardInput(player, move);
-            //client.SetInput(move.ToString());
+            ROUND++;
+            server.GetKeyboardInput(player, move , ROUND);
         }
 
         public string GetPort() { return port.ToString(); }
