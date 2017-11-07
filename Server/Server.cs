@@ -6,9 +6,10 @@ using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Diagnostics;
 
+
 namespace pacman
 {
-    public class Server
+    public class Server 
     {
         private PacmanServerObject server;
 
@@ -32,7 +33,7 @@ namespace pacman
         }
 
         public void SetMAXPLAYERS(int max) { 
-            server.SetMAXPLAYERS(max); 
+            server.SetMaxplayers(max); 
         }
 
 

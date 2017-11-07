@@ -15,13 +15,13 @@ using System.Threading;
 
 namespace pacman
 {
-    class Client
+    class Client 
     {
         private TcpChannel channel = null;
         private IPacmanPlatform server;
         private PacmanClientObject client;
         private int port;
-
+        private int ROUND = 0;
         //private string nickname;
         private int player;
         private int round;
@@ -106,6 +106,12 @@ namespace pacman
 
             
         
+
+        public void SendInput(string move)
+        {
+            ROUND++;
+            server.GetKeyboardInput(player, move , ROUND);
+        }
 
         public string GetPort() { return port.ToString(); }
 

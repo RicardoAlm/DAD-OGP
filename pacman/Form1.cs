@@ -19,10 +19,6 @@ namespace pacman {
         bool godown;
         bool goleft;
         bool goright;
-        string keypressed;
-        int formround = 0;
-        bool flag = false;
-
 
         int boardRight = 320;
         int boardBottom = 320;
@@ -54,6 +50,7 @@ namespace pacman {
         public Form1() {
             InitializeComponent();
             //if (client == null)
+            DrawPacmans();
             client = new Client(this, new UpdateChat(this.ChangeChat));
             label2.Visible = false;
         }
@@ -84,19 +81,20 @@ namespace pacman {
         private void keyisdown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Left) {
                 goleft = true;
-                //pacman.Image = Properties.Resources.Left;
+                pacman.Image = Properties.Resources.Left;
             }
             if (e.KeyCode == Keys.Right) {
                 goright = true;
-                //pacman.Image = Properties.Resources.Right;
+                pacman.Image = Properties.Resources.Right;
             }
             if (e.KeyCode == Keys.Up) {
                 goup = true;
-                //pacman.Image = Properties.Resources.Up;
+                pacman.Image = Properties.Resources.Up;
             }
             if (e.KeyCode == Keys.Down) {
                 godown = true;
-                //pacman.Image = Properties.Resources.down;
+                pacman.Image = Properties.Resources.down;
+                //DrawPacmans(); //here
             }
             if (e.KeyCode == Keys.Enter) {
                     tbMsg.Enabled = true; tbMsg.Focus();
@@ -118,14 +116,35 @@ namespace pacman {
             }
         }
 
-        public void MoveKey(string key)
-        {
-            keypressed = key; 
-        }
+        private void DrawPacmans() //Quando state estiver implementado, para cada player desenhar na posicao e direcao indicada, recebe state
+            //fazer funcao para initial state
 
-        public void SetFlag()
+        //state tem que ter : direcao e posicao de cada cliente, moedas "comidas",
         {
-            flag = true;
+            //e preciso ir buscar lista de clientes ou numero
+            List<int> clients = new List<int>(); //lista para testar
+            clients.Add(1);
+            clients.Add(2);
+            clients.Add(3);
+            clients.Add(4);
+            //for player in playerList:
+            //string name = string.Concat("pacman", i.ToString());
+            //PictureBox pacman1 = new PictureBox { Image = global::pacman.Properties.Resources.Left , Width = pacman.Width ,Height=pacman.Height};
+            foreach (int player in clients) {
+                //add condition para nao desenhar o proprio player!=_id
+                PictureBox pacman1 = new PictureBox();
+                pacman1.BackColor = System.Drawing.Color.Transparent;
+                pacman1.Image = global::pacman.Properties.Resources.Left;
+                pacman1.Location = new System.Drawing.Point(8, player * 40);
+                pacman1.Margin = new System.Windows.Forms.Padding(0);
+                pacman1.Name = "pacman" + player.ToString();
+                pacman1.Size = new System.Drawing.Size(25, 25);
+                pacman1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+                pacman1.TabIndex = 4;
+                pacman1.TabStop = false;
+                this.Controls.Add(pacman1);
+            }
+            
         }
 
         private void timer1_Tick(object sender, EventArgs e) {
@@ -133,29 +152,24 @@ namespace pacman {
 
             //qual e o player ????
             //buscar string ao cliente e mover consoante a string
-            if (flag == true)
-            {
 
-            
-            
             //move player
-            if (keypressed.Equals("left")) {
+            if (goleft) {
                 if (pacman.Left > (boardLeft))
                     pacman.Left -= speed;
             }
-            if (keypressed.Equals("right")) {
+            if (goright) {
                 if (pacman.Left < (boardRight))
                 pacman.Left += speed;
             }
-            if (keypressed.Equals("up")) {
+            if (goup) {
                 if (pacman.Top > (boardTop))
                     pacman.Top -= speed;
             }
-            if (keypressed.Equals("down")) {
+            if (godown) {
                 if (pacman.Top < (boardBottom))
                     pacman.Top += speed;
             }
-            keypressed = "";
             //move ghosts
             redGhost.Left += ghost1;
             yellowGhost.Left += ghost2;
@@ -214,8 +228,6 @@ namespace pacman {
                 if (pinkGhost.Top < boardTop || pinkGhost.Top + pinkGhost.Height > boardBottom - 2) {
                     ghost3y = -ghost3y;
                 }
-                flag = false;
-            }
         }
 
         private void tbMsg_KeyDown(object sender, KeyEventArgs e) {
@@ -224,6 +236,15 @@ namespace pacman {
                 client.BroadcastChatMsg("\r\n" + client.GetPort() + ":" + tbMsg.Text);
                 tbMsg.Clear(); tbMsg.Enabled = false; this.Focus();
                 
+            }
+        }
+
+        public void SendInput(object sender, KeyEventArgs e)
+        {
+            string move = GetKeyInput();
+            if(move != null)
+            {
+                client.SendInput(move);
             }
         }
 
@@ -246,5 +267,6 @@ namespace pacman {
         {
 
         }
+
     }
 }
