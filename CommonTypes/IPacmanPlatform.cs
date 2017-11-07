@@ -8,6 +8,9 @@ namespace pacman
     {
         void GetKeyboardInput(int player, string key);
         void Register(string nick, string url);
+        bool StartGame();
+        int GetRound();
+        Dictionary<int, string> PlayerMovements();
     }
 
 }

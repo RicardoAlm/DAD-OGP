@@ -7,23 +7,34 @@ using System.Collections;
 using System.Threading;
 using System.Linq;
 
+
 namespace pacman
 {
     public class PacmanServerObject : MarshalByRefObject, IPacmanPlatform
     {
  
-        private int MSEC_PER_ROUND;
+        private int MSEC_PER_ROUND = 10000;
         private int MAX_PLAYERS;
         private Dictionary<int, string> playermoves;
         private Dictionary<string, PacmanClientObject> clients;
         private int players;
+        private bool game = false;
+        private int round;
 
         public PacmanServerObject()
         {
             playermoves = new Dictionary<int, string>();
             clients = new Dictionary<string, PacmanClientObject>();
             players = 0;
+            System.Windows.Forms.Timer t = new System.Windows.Forms.Timer(); 
+        
+            t.Interval = MSEC_PER_ROUND;
+            t.Tick += new EventHandler(timer_Tick);
+            t.Start();
         }
+
+        
+
 
         public void Register(string nick, string url)
         {
@@ -70,18 +81,42 @@ namespace pacman
 
         public void GetKeyboardInput(int player, string key)
         {
-            playermoves.Add(player, key);            
+            playermoves.Add(player, key);
+                    
         }
 
-        /*public hashtable MovePlayer()
-         * {
-         *      MSEC_PER_ROUND after this time
-         *      send to every client the moves of each player (the client will be constantly trying to get this information)
-         *      each client will move all players based on playermoves
-                
-         * 
-         * }
-         * */
+        public Dictionary<int, string> PlayerMovements()
+        {
+            return playermoves;
+        }
+
+        public void timer_Tick(object sender, EventArgs e)
+        {
+            if (game == false)
+            {
+                if (clients.Count == MAX_PLAYERS)
+                {
+                    game = true;
+                    round = 0;
+                    playermoves.Clear();
+                }
+            }
+            else
+            {
+
+                round += 1;
+            }
+        }
+
+        public int GetRound()
+        {
+            return round;
+        }
+
+        public bool StartGame()
+        {
+            return game;
+        }
     }
 
     public class PacmanClientObject : MarshalByRefObject

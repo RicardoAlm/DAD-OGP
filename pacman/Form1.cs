@@ -19,6 +19,10 @@ namespace pacman {
         bool godown;
         bool goleft;
         bool goright;
+        string keypressed;
+        int formround = 0;
+        bool flag = false;
+
 
         int boardRight = 320;
         int boardBottom = 320;
@@ -80,19 +84,19 @@ namespace pacman {
         private void keyisdown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Left) {
                 goleft = true;
-                pacman.Image = Properties.Resources.Left;
+                //pacman.Image = Properties.Resources.Left;
             }
             if (e.KeyCode == Keys.Right) {
                 goright = true;
-                pacman.Image = Properties.Resources.Right;
+                //pacman.Image = Properties.Resources.Right;
             }
             if (e.KeyCode == Keys.Up) {
                 goup = true;
-                pacman.Image = Properties.Resources.Up;
+                //pacman.Image = Properties.Resources.Up;
             }
             if (e.KeyCode == Keys.Down) {
                 godown = true;
-                pacman.Image = Properties.Resources.down;
+                //pacman.Image = Properties.Resources.down;
             }
             if (e.KeyCode == Keys.Enter) {
                     tbMsg.Enabled = true; tbMsg.Focus();
@@ -114,29 +118,44 @@ namespace pacman {
             }
         }
 
+        public void MoveKey(string key)
+        {
+            keypressed = key; 
+        }
+
+        public void SetFlag()
+        {
+            flag = true;
+        }
+
         private void timer1_Tick(object sender, EventArgs e) {
             label1.Text = "Score: " + score;
 
             //qual e o player ????
             //buscar string ao cliente e mover consoante a string
+            if (flag == true)
+            {
 
+            
+            
             //move player
-            if (goleft) {
+            if (keypressed.Equals("left")) {
                 if (pacman.Left > (boardLeft))
                     pacman.Left -= speed;
             }
-            if (goright) {
+            if (keypressed.Equals("right")) {
                 if (pacman.Left < (boardRight))
                 pacman.Left += speed;
             }
-            if (goup) {
+            if (keypressed.Equals("up")) {
                 if (pacman.Top > (boardTop))
                     pacman.Top -= speed;
             }
-            if (godown) {
+            if (keypressed.Equals("down")) {
                 if (pacman.Top < (boardBottom))
                     pacman.Top += speed;
             }
+            keypressed = "";
             //move ghosts
             redGhost.Left += ghost1;
             yellowGhost.Left += ghost2;
@@ -195,6 +214,8 @@ namespace pacman {
                 if (pinkGhost.Top < boardTop || pinkGhost.Top + pinkGhost.Height > boardBottom - 2) {
                     ghost3y = -ghost3y;
                 }
+                flag = false;
+            }
         }
 
         private void tbMsg_KeyDown(object sender, KeyEventArgs e) {

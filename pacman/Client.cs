@@ -24,16 +24,18 @@ namespace pacman
 
         //private string nickname;
         private int player;
+        private int round;
 
         public Client(Form1 form, Delegate d)
         {
             Debug.WriteLine("Connecting to server...");
             ConnectToServer(form, d);
             Debug.WriteLine("Connected to server");
+            MoveTheGame(form);
            /* Debug.WriteLine("Updating Clients list...");
             server.GetClients(port.ToString());
             Debug.WriteLine("Clients list Updated");*/
-
+            //form.
         }
 
         public void ConnectToServer(Form f, Delegate d)
@@ -75,16 +77,35 @@ namespace pacman
 
         }
 
-        public void MoveTheGame()
+        public void MoveTheGame(Form1 form)
         {
-            /*obj.sendInput
-             * 
-             * thread to obj.moveplayer() 
-             * send to foRm what to do 
-             * 
-
-            */
+            round = 1;
+            while (!server.StartGame()) { }
+            while (server.StartGame())
+            {
+                server.GetKeyboardInput(player, form.GetKeyInput());
+                if (round==server.GetRound())
+                {
+                    foreach(string key in server.PlayerMovements().Values)
+                    {
+                        form.MoveKey(key);
+                        form.SetFlag();
+                    }
+                }
+                /*
+                
+                form.getround()
+                form.movekey()
+                move*/
+            }
         }
+            
+            //thread to obj.moveplayer()
+           //* send to foRm what to do
+                
+
+            
+        
 
         public string GetPort() { return port.ToString(); }
 
