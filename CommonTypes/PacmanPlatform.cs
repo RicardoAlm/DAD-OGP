@@ -12,22 +12,32 @@ namespace pacman
 {
     public class PacmanServerObject : MarshalByRefObject, IPacmanPlatform
     {
- 
-        private int MSEC_PER_ROUND;
-        private int MAX_PLAYERS;
-        private int ROUND;
+
+        private int MSEC_PER_ROUND = 100;
+        private int MAX_PLAYERS = 50;
+        //private int ROUND;
         private List<string> urls;
         private Dictionary<int, string> playermoves;
         private Dictionary<string, PacmanClientObject> clients;
         private int players;
-        private System.Windows.Forms.Timer timer1;
+        private bool game = false;
+        private int round;
+        private Dictionary<int, bool> readyness;
+        //private System.Windows.Forms.Timer timer1;
 
         public PacmanServerObject()
         {
             playermoves = new Dictionary<int, string>();
             clients = new Dictionary<string, PacmanClientObject>();
+            readyness = new Dictionary<int, bool>();
             urls = new List<string>();
             players = 0;
+
+            System.Windows.Forms.Timer t = new System.Windows.Forms.Timer();
+
+            t.Interval = MSEC_PER_ROUND;
+            t.Tick += new EventHandler(timer_Tick);
+            t.Start();
         }
 
         public void Register(string nick, string url)
@@ -76,13 +86,38 @@ namespace pacman
 
 
         //--- Server methods ---
-       
-        public void GetKeyboardInput(int player, string key , int roundId) {
-            if(this.ROUND == roundId)
+        
+        public void GetKeyboardInput(int player, string key) {
+            //if(this.ROUND == roundId)
+            bool check = false;
+            if (playermoves.Count != 0)
+            {
+                
+                foreach (int plr in playermoves.Keys)
+                {
+                    
+                    if (plr == player)
+                    {
+                        playermoves[player] = key;
+                        check = true;
+                        break;
+                    }
+                    
+                }
+                if (check == false)
+                {
+                    playermoves.Add(player, key);
+                }
+            }
+            else
+            {
+                
                 playermoves.Add(player, key);
+            }
+
         }
 
-
+        /*
         //espera MSEC_PER_ROUND pelo input dos clientes, apos esse tempo chama ComputeStates() para gerar o proximo estado 
         public void WaitForClientsInput() 
         {
@@ -106,18 +141,61 @@ namespace pacman
         {
             this.ROUND++;
         }
+        */
 
+        public Dictionary<int, string> PlayerMovements()
+        {
+            return playermoves;
+        }
 
-        /*public hashtable MovePlayer()
-         * {
-         *      MSEC_PER_ROUND after this time
-         *      send to every client the moves of each player (the client will be constantly trying to get this information)
-         *      each client will move all players based on playermoves
+        public void timer_Tick(object sender, EventArgs e)
+        {
+            if (game == false)
+            {
+                if (clients.Count == MAX_PLAYERS)
+                {
+                    game = true;
+                    round = 0;
+                    //playermoves.Clear();
+                    foreach (bool ready in readyness.Values)
+                        {
+                            if (ready == false)
+                            {
+                                return;
+                            }
+                    }
+                    
+                    
+                }
+            }
+            else
+            {
                 
-         * 
-         * }
-         * */
+                round += 1;
+            }
+        }
+
+        public void Ready(int player)
+        {
+            readyness.Add(player,true);
+        }
+
+        public int GetRound()
+        {
+            return round;
+        }
+
+        public bool StartGame()
+        {
+            return game;
+        }
+
+        public int GetPlayerName()
+        {
+            return players;
+        }
     }
+
 
     public class PacmanClientObject : MarshalByRefObject
     {

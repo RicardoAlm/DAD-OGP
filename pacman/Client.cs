@@ -80,24 +80,32 @@ namespace pacman
         public void MoveTheGame(Form1 form)
         {
             round = 1;
-            while (!server.StartGame()) { }
-            while (server.StartGame())
+            new Thread(() =>
             {
-                server.GetKeyboardInput(player, form.GetKeyInput());
-                if (round==server.GetRound())
+                while (!server.StartGame())
                 {
-                    foreach(string key in server.PlayerMovements().Values)
+                    Thread.Sleep(1);                    
+                }
+
+                server.Ready(player);
+                while (server.StartGame())
+                {   
+
+                    server.GetKeyboardInput(player, form.GetKeyInput());
+
+                    if (round == server.GetRound())
                     {
-                        form.MoveKey(key);
-                        form.SetFlag();
+                        
+                        foreach (string key in server.PlayerMovements().Values)
+                        {
+                            
+                            form.MoveKey(key);
+                            form.SetFlag();
+                            round += 1;
+                        }
                     }
                 }
-                /*
-                
-                form.getround()
-                form.movekey()
-                move*/
-            }
+            }).Start();
         }
             
             //thread to obj.moveplayer()
@@ -106,12 +114,12 @@ namespace pacman
 
             
         
-
+        /*
         public void SendInput(string move)
         {
             ROUND++;
             server.GetKeyboardInput(player, move , ROUND);
-        }
+        }*/
 
         public string GetPort() { return port.ToString(); }
 

@@ -19,6 +19,8 @@ namespace pacman {
         bool godown;
         bool goleft;
         bool goright;
+        string keypressed;
+        bool flag = false;
 
         int boardRight = 320;
         int boardBottom = 320;
@@ -81,19 +83,19 @@ namespace pacman {
         private void keyisdown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Left) {
                 goleft = true;
-                pacman.Image = Properties.Resources.Left;
+                //pacman.Image = Properties.Resources.Left;
             }
             if (e.KeyCode == Keys.Right) {
                 goright = true;
-                pacman.Image = Properties.Resources.Right;
+                //pacman.Image = Properties.Resources.Right;
             }
             if (e.KeyCode == Keys.Up) {
                 goup = true;
-                pacman.Image = Properties.Resources.Up;
+                //pacman.Image = Properties.Resources.Up;
             }
             if (e.KeyCode == Keys.Down) {
                 godown = true;
-                pacman.Image = Properties.Resources.down;
+                //pacman.Image = Properties.Resources.down;
                 //DrawPacmans(); //here
             }
             if (e.KeyCode == Keys.Enter) {
@@ -143,77 +145,117 @@ namespace pacman {
                 pacman1.TabIndex = 4;
                 pacman1.TabStop = false;
                 this.Controls.Add(pacman1);
-            }
-            
+            }           
         }
 
-        private void timer1_Tick(object sender, EventArgs e) {
+        public void MoveKey(string key)
+        {
+            keypressed = key;
+        }
+
+        public void SetFlag()
+        {
+            flag = true;
+        }
+
+
+
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
             label1.Text = "Score: " + score;
 
             //qual e o player ????
             //buscar string ao cliente e mover consoante a string
 
             //move player
-            if (goleft) {
-                if (pacman.Left > (boardLeft))
-                    pacman.Left -= speed;
-            }
-            if (goright) {
-                if (pacman.Left < (boardRight))
-                pacman.Left += speed;
-            }
-            if (goup) {
-                if (pacman.Top > (boardTop))
-                    pacman.Top -= speed;
-            }
-            if (godown) {
-                if (pacman.Top < (boardBottom))
-                    pacman.Top += speed;
-            }
-            //move ghosts
-            redGhost.Left += ghost1;
-            yellowGhost.Left += ghost2;
+            if (flag == true)
+            {
 
-            // if the red ghost hits the picture box 4 then wereverse the speed
-            if (redGhost.Bounds.IntersectsWith(pictureBox1.Bounds))
-                ghost1 = -ghost1;
-            // if the red ghost hits the picture box 3 we reverse the speed
-            else if (redGhost.Bounds.IntersectsWith(pictureBox2.Bounds))
-                ghost1 = -ghost1;
-            // if the yellow ghost hits the picture box 1 then wereverse the speed
-            if (yellowGhost.Bounds.IntersectsWith(pictureBox3.Bounds))
-                ghost2 = -ghost2;
-            // if the yellow chost hits the picture box 2 then wereverse the speed
-            else if (yellowGhost.Bounds.IntersectsWith(pictureBox4.Bounds))
-                ghost2 = -ghost2;
-            //moving ghosts and bumping with the walls end
-            //for loop to check walls, ghosts and points
-            foreach (Control x in this.Controls) {
-                // checking if the player hits the wall or the ghost, then game is over
-                if (x is PictureBox && x.Tag == "wall" || x.Tag == "ghost") {
-                    if (((PictureBox)x).Bounds.IntersectsWith(pacman.Bounds)) {
-                        pacman.Left = 0;
-                        pacman.Top = 25;
-                        label2.Text = "GAME OVER";
-                        label2.Visible = true;
-                        timer1.Stop();
+
+
+                //move player
+                if (keypressed != null)
+                {
+                    lock (keypressed)
+                    {
+                        if (keypressed.Equals("left"))
+                        {
+                            pacman.Image = Properties.Resources.Left;
+                            if (pacman.Left > (boardLeft))
+                                pacman.Left -= speed;
+                        }
+                        if (keypressed.Equals("right"))
+                        {
+                            pacman.Image = Properties.Resources.Right;
+                            if (pacman.Left < (boardRight))
+                                pacman.Left += speed;
+                        }
+                        if (keypressed.Equals("up"))
+                        {
+                            pacman.Image = Properties.Resources.Up;
+                            if (pacman.Top > (boardTop))
+                                pacman.Top -= speed;
+                        }
+                        if (keypressed.Equals("down"))
+                        {
+                            pacman.Image = Properties.Resources.down;
+                            if (pacman.Top < (boardBottom))
+                                pacman.Top += speed;
+                        }
                     }
                 }
-                if (x is PictureBox && x.Tag == "coin") {
-                    if (((PictureBox)x).Bounds.IntersectsWith(pacman.Bounds)) {
-                        this.Controls.Remove(x);
-                        score++;
-                        //TODO check if all coins where "eaten"
-                        if (score == total_coins) {
-                            //pacman.Left = 0;
-                            //pacman.Top = 25;
-                            label2.Text = "GAME WON!";
+                keypressed = "";
+                //move ghosts
+                redGhost.Left += ghost1;
+                yellowGhost.Left += ghost2;
+
+                // if the red ghost hits the picture box 4 then wereverse the speed
+                if (redGhost.Bounds.IntersectsWith(pictureBox1.Bounds))
+                    ghost1 = -ghost1;
+                // if the red ghost hits the picture box 3 we reverse the speed
+                else if (redGhost.Bounds.IntersectsWith(pictureBox2.Bounds))
+                    ghost1 = -ghost1;
+                // if the yellow ghost hits the picture box 1 then wereverse the speed
+                if (yellowGhost.Bounds.IntersectsWith(pictureBox3.Bounds))
+                    ghost2 = -ghost2;
+                // if the yellow chost hits the picture box 2 then wereverse the speed
+                else if (yellowGhost.Bounds.IntersectsWith(pictureBox4.Bounds))
+                    ghost2 = -ghost2;
+                //moving ghosts and bumping with the walls end
+                //for loop to check walls, ghosts and points
+                foreach (Control x in this.Controls)
+                {
+                    // checking if the player hits the wall or the ghost, then game is over
+                    if (x is PictureBox && x.Tag == "wall" || x.Tag == "ghost")
+                    {
+                        if (((PictureBox)x).Bounds.IntersectsWith(pacman.Bounds))
+                        {
+                            pacman.Left = 0;
+                            pacman.Top = 25;
+                            label2.Text = "GAME OVER";
                             label2.Visible = true;
                             timer1.Stop();
+                        }
+                    }
+                    if (x is PictureBox && x.Tag == "coin")
+                    {
+                        if (((PictureBox)x).Bounds.IntersectsWith(pacman.Bounds))
+                        {
+                            this.Controls.Remove(x);
+                            score++;
+                            //TODO check if all coins where "eaten"
+                            if (score == total_coins)
+                            {
+                                //pacman.Left = 0;
+                                //pacman.Top = 25;
+                                label2.Text = "GAME WON!";
+                                label2.Visible = true;
+                                timer1.Stop();
                             }
+                        }
                     }
                 }
-            }
                 pinkGhost.Left += ghost3x;
                 pinkGhost.Top += ghost3y;
 
@@ -222,12 +264,16 @@ namespace pacman {
                     (pinkGhost.Bounds.IntersectsWith(pictureBox1.Bounds)) ||
                     (pinkGhost.Bounds.IntersectsWith(pictureBox2.Bounds)) ||
                     (pinkGhost.Bounds.IntersectsWith(pictureBox3.Bounds)) ||
-                    (pinkGhost.Bounds.IntersectsWith(pictureBox4.Bounds))) {
+                    (pinkGhost.Bounds.IntersectsWith(pictureBox4.Bounds)))
+                {
                     ghost3x = -ghost3x;
                 }
-                if (pinkGhost.Top < boardTop || pinkGhost.Top + pinkGhost.Height > boardBottom - 2) {
+                if (pinkGhost.Top < boardTop || pinkGhost.Top + pinkGhost.Height > boardBottom - 2)
+                {
                     ghost3y = -ghost3y;
                 }
+                flag = false;
+            }
         }
 
         private void tbMsg_KeyDown(object sender, KeyEventArgs e) {
@@ -239,6 +285,7 @@ namespace pacman {
             }
         }
 
+        /*
         public void SendInput(object sender, KeyEventArgs e)
         {
             string move = GetKeyInput();
@@ -246,7 +293,7 @@ namespace pacman {
             {
                 client.SendInput(move);
             }
-        }
+        }*/
 
         public void ChangeChat(string msg)
         {
