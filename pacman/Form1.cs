@@ -26,7 +26,8 @@ namespace pacman {
         bool goleft;
         bool goright;
         string keypressed;
-        List<string> dead ;
+        int dead ;
+        bool ready =false;
 
         int boardRight = 320;
         int boardBottom = 320;
@@ -36,7 +37,7 @@ namespace pacman {
         int speed = 5;
 
         int score = 0; int total_coins = 61;
-
+        List<int> scores;
         //ghost speed for the one direction ghosts
         int ghost1 = 5;
         int ghost2 = 5;
@@ -45,12 +46,6 @@ namespace pacman {
         int ghost3x = 5;
         int ghost3y = 5;
 
-        //client class *************
-        // Client clt = new Client();
-        int player;
-        // int player = clt.GetPlayer();
-
-        //int player = Client.GetPlayer();
 
         Client client = null;
         public delegate void UpdateChat(string msg);
@@ -68,6 +63,8 @@ namespace pacman {
         {
             if (s.Round == 1)
             {
+                scores = new List<int>(Enumerable.Repeat(0, client.NumPlayers()));
+                ready = true;
                 _id = s.Id;
                 for (int i = 0; i < client.NumPlayers(); i++)
                 {
@@ -155,17 +152,9 @@ namespace pacman {
         {
             for (int i = 0; i < client.NumPlayers(); i++ )
             {
-            
                 PictureBox pacman = pacmans[i];
                 pacman.Location = new System.Drawing.Point(s.CoordX[i], s.CoordY[i]);
                 this.Controls.Add(pacman);
-
-                /*if (!s.Alive && s.Id==i)
-                {
-                   PictureBox pacman = pacmans[i];
-                   // pacman.Location = new System.Drawing.Point(0, 0);
-                   this.Controls.Add(pacman);
-                }*/
             }           
         }
 
@@ -176,6 +165,7 @@ namespace pacman {
 
         private void timer1_Tick(object sender, EventArgs e)
         {
+            
             label1.Text = "Score: " + score;
             
             if (sendMessage)
@@ -183,99 +173,93 @@ namespace pacman {
                 State newState = new State();
                 newState.Id = _id;
                 newState.Key = GetKeyInput();
-                /*if (dead)
-                {
-                    newState.Alive = false;
-                }
-                else { newState.Alive = true; }*/
+         
                 client.SendStateServer(newState);
                 sendMessage=false;
             }
 
             keypressed = "";
-            redGhost.Left += ghost1;
-            yellowGhost.Left += ghost2;
-            // if the red ghost hits the picture box 4 then wereverse the speed
-            if (redGhost.Bounds.IntersectsWith(pictureBox1.Bounds))
-                ghost1 = -ghost1;
-            // if the red ghost hits the picture box 3 we reverse the speed
-            else if (redGhost.Bounds.IntersectsWith(pictureBox2.Bounds))
-                ghost1 = -ghost1;
-            // if the yellow ghost hits the picture box 1 then wereverse the speed
-            if (yellowGhost.Bounds.IntersectsWith(pictureBox3.Bounds))
-                ghost2 = -ghost2;
-            // if the yellow chost hits the picture box 2 then wereverse the speed
-            else if (yellowGhost.Bounds.IntersectsWith(pictureBox4.Bounds))
-                ghost2 = -ghost2;
-            //moving ghosts and bumping with the walls end
-            //for loop to check walls, ghosts and points
-            foreach (Control x in this.Controls)
+
+            if (ready)
             {
-                /*if (x is PictureBox && x.Tag == "dead")
+                redGhost.Left += ghost1;
+                yellowGhost.Left += ghost2;
+                // if the red ghost hits the picture box 4 then wereverse the speed
+                if (redGhost.Bounds.IntersectsWith(pictureBox1.Bounds))
+                    ghost1 = -ghost1;
+                // if the red ghost hits the picture box 3 we reverse the speed
+                else if (redGhost.Bounds.IntersectsWith(pictureBox2.Bounds))
+                    ghost1 = -ghost1;
+                // if the yellow ghost hits the picture box 1 then wereverse the speed
+                if (yellowGhost.Bounds.IntersectsWith(pictureBox3.Bounds))
+                    ghost2 = -ghost2;
+                // if the yellow chost hits the picture box 2 then wereverse the speed
+                else if (yellowGhost.Bounds.IntersectsWith(pictureBox4.Bounds))
+                    ghost2 = -ghost2;
+                //moving ghosts and bumping with the walls end
+                //for loop to check walls, ghosts and points
+                foreach (Control x in this.Controls)
                 {
-                    if (dead.Count == client.NumPlayers())
+                    if (x is PictureBox && x.Tag == "dead" && dead == client.NumPlayers())
                     {
                         label2.Text = "GAME OVER";
                         label2.Visible = true;
                         timer1.Stop();
                     }
-                }*/
-                if (x is PictureBox && x.Tag == "pacman")
-                {
-                    if (((PictureBox)x).Bounds.IntersectsWith(redGhost.Bounds) || 
-                        ((PictureBox)x).Bounds.IntersectsWith(pinkGhost.Bounds) ||
-                         ((PictureBox)x).Bounds.IntersectsWith(yellowGhost.Bounds) ||
-                          ((PictureBox)x).Bounds.IntersectsWith(pictureBox1.Bounds) || //walls
-                           ((PictureBox)x).Bounds.IntersectsWith(pictureBox2.Bounds) ||
-                            ((PictureBox)x).Bounds.IntersectsWith(pictureBox3.Bounds) ||
-                             ((PictureBox)x).Bounds.IntersectsWith(pictureBox4.Bounds))
+                    if (x is PictureBox && x.Tag == "pacman")
                     {
-                        //this.Controls.Remove(x);
-                        x.Visible= false;
-                        x.Tag = "dead";
-                        
-                        //label2.Text = "GAME OVER";
-                        //label2.Visible = true;
-                        //timer1.Stop();
-
-                    }
-                    foreach (Control y in this.Controls)
-                    {
-                        if (y is PictureBox && y.Tag == "coin")
+                        if (((PictureBox)x).Bounds.IntersectsWith(redGhost.Bounds) ||//ghosts:
+                            ((PictureBox)x).Bounds.IntersectsWith(pinkGhost.Bounds) ||
+                             ((PictureBox)x).Bounds.IntersectsWith(yellowGhost.Bounds) ||
+                              ((PictureBox)x).Bounds.IntersectsWith(pictureBox1.Bounds) || //walls:
+                               ((PictureBox)x).Bounds.IntersectsWith(pictureBox2.Bounds) ||
+                                ((PictureBox)x).Bounds.IntersectsWith(pictureBox3.Bounds) ||
+                                 ((PictureBox)x).Bounds.IntersectsWith(pictureBox4.Bounds))
                         {
-                            if (((PictureBox)x).Bounds.IntersectsWith(((PictureBox)y).Bounds)){
-                                this.Controls.Remove(y);
-                                score++;
-                                if (score == total_coins)
+                            x.Visible = false;
+                            dead++;
+                            x.Tag = "dead";
+                        }
+                        foreach (Control y in this.Controls)
+                        {
+                            if (y is PictureBox && y.Tag == "coin")
+                            {
+                                if (((PictureBox)x).Bounds.IntersectsWith(((PictureBox)y).Bounds))
                                 {
-                                    //pacman.Left = 0;
-                                    //pacman.Top = 25;
-                                    label2.Text = "GAME WON!";
-                                    label2.Visible = true;
-                                    timer1.Stop();
+                                    this.Controls.Remove(y);
+                                    score++;
+                                    int i = (int)Char.GetNumericValue(x.Name[6]);
+                                    scores.Insert(i,scores[i]++);
+                                    if (score == total_coins)
+                                    {
+                                     
+                                        int winner = scores.IndexOf(scores.Max());
+                                        label2.Text ="PLAYER" + winner.ToString() + " WON!";
+                                        label2.Visible = true;
+                                        timer1.Stop();
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-            pinkGhost.Left += ghost3x;
-            pinkGhost.Top += ghost3y;
+                pinkGhost.Left += ghost3x;
+                pinkGhost.Top += ghost3y;
 
-            if (pinkGhost.Left < boardLeft ||
-                pinkGhost.Left > boardRight ||
-                (pinkGhost.Bounds.IntersectsWith(pictureBox1.Bounds)) ||
-                (pinkGhost.Bounds.IntersectsWith(pictureBox2.Bounds)) ||
-                (pinkGhost.Bounds.IntersectsWith(pictureBox3.Bounds)) ||
-                (pinkGhost.Bounds.IntersectsWith(pictureBox4.Bounds)))
-            {
-                ghost3x = -ghost3x;
+                if (pinkGhost.Left < boardLeft ||
+                    pinkGhost.Left > boardRight ||
+                    (pinkGhost.Bounds.IntersectsWith(pictureBox1.Bounds)) ||
+                    (pinkGhost.Bounds.IntersectsWith(pictureBox2.Bounds)) ||
+                    (pinkGhost.Bounds.IntersectsWith(pictureBox3.Bounds)) ||
+                    (pinkGhost.Bounds.IntersectsWith(pictureBox4.Bounds)))
+                {
+                    ghost3x = -ghost3x;
+                }
+                if (pinkGhost.Top < boardTop || pinkGhost.Top + pinkGhost.Height > boardBottom - 2)
+                {
+                    ghost3y = -ghost3y;
+                }
             }
-            if (pinkGhost.Top < boardTop || pinkGhost.Top + pinkGhost.Height > boardBottom - 2)
-            {
-                ghost3y = -ghost3y;
-            }
-
             
         }
 
