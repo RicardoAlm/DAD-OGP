@@ -72,39 +72,6 @@ namespace pacman
             return client.NumPlayers();
         }
 
-        /*public void MoveTheGame(Form1 form)
-        {
-            new Thread (() =>
-            {
-                while (!client.IsGameReady())
-                {
-                    Thread.Sleep(1);
-                }
-
-                while (true)
-                {
-                    State s = client.GetState();
-                    s.Key = form.GetKeyInput();
-                    server.GetKeyboardInput(s);
-                }
-
-            }).Start();
-        }*/
-
-
-
-        //thread to obj.moveplayer()
-    //* send to foRm what to do
-
-
-
-
-    /*
-    public void SendInput(string move)
-    {
-        ROUND++;
-        server.GetKeyboardInput(player, move , ROUND);
-    }*/
 
     public string GetPort() { return port.ToString(); }
 

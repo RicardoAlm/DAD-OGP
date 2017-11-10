@@ -76,6 +76,7 @@ namespace pacman
                 foreach(string clientNick in _clients.Keys)
                 {
                     _board.Id = id;
+                    _board.Alive = true;
                     _board.CoordX.Insert(id, 8);
                     _board.CoordY.Insert(id, (id + 1) * 40);
                     _clients[clientNick].GetServerClients(clientNick, _urls, id);
@@ -118,12 +119,12 @@ namespace pacman
         {
             foreach (State s in _queueStates)
             {
-               // Debug.WriteLine("iD:" + s.Id + "Key:" + s.Key);
-               // Debug.WriteLine("BoardCount:"+_board.CoordY.Count);
-
+                // Debug.WriteLine("iD:" + s.Id + "Key:" + s.Key);
+                // Debug.WriteLine("BoardCount:"+_board.CoordY.Count);
+                
                 if (s.Key.Equals("up"))
                 {
-                    _board.CoordY[s.Id] =  _board.CoordY[s.Id] - 5;
+                    _board.CoordY[s.Id] = _board.CoordY[s.Id] - 5;
                 }
                 if (s.Key.Equals("down"))
                 {
@@ -131,14 +132,17 @@ namespace pacman
                 }
                 if (s.Key.Equals("left"))
                 {
-                    _board.CoordX[s.Id]=  _board.CoordX[s.Id] - 5;
+                    _board.CoordX[s.Id] = _board.CoordX[s.Id] - 5;
                 }
                 if (s.Key.Equals("right"))
                 {
                     _board.CoordX[s.Id] = _board.CoordX[s.Id] + 5;
                 }
-                if (s.Key.Equals("")){}
+                if (s.Key.Equals("")) { }
             }
+        
+                
+            
             _board.Round++;
         }
 
@@ -351,6 +355,7 @@ namespace pacman
         public List<int> CoordX { get; set; }
         public List<int> CoordY { get; set; }
         public string Key { get; set; }
+        public bool Alive { get; set; }
     }
 
 }
