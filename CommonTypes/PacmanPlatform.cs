@@ -13,7 +13,7 @@ namespace pacman
     public class PacmanServerObject : MarshalByRefObject, IPacmanPlatform
     {
 
-        private int MSEC_PER_ROUND = 100;
+        private int MSEC_PER_ROUND = 50;
         private int MAX_PLAYERS;
         private readonly List<string> _urls;
         private readonly List<State> _queueStates;
@@ -99,7 +99,7 @@ namespace pacman
             _board.Round = 0;
             new Thread(() =>
             {
-                while (!_gameStart){}
+                while (!_gameStart){ Thread.Sleep(1); }
                 while (true)
                     {
                         Thread.Sleep(MSEC_PER_ROUND); //+delay?
@@ -118,8 +118,8 @@ namespace pacman
         {
             foreach (State s in _queueStates)
             {
-                Debug.WriteLine("iD:" + s.Id + "Key:" + s.Key);
-                Debug.WriteLine("BoardCount:"+_board.CoordY.Count);
+               // Debug.WriteLine("iD:" + s.Id + "Key:" + s.Key);
+               // Debug.WriteLine("BoardCount:"+_board.CoordY.Count);
 
                 if (s.Key.Equals("up"))
                 {

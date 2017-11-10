@@ -71,10 +71,21 @@ namespace pacman {
                 _id = s.Id;
                 for (int i = 0; i < client.NumPlayers(); i++)
                 {
-                    pacmans.Insert(i, new PictureBox());
+                    PictureBox pacman = new PictureBox();
+                    pacman.BackColor = System.Drawing.Color.Transparent;
+                    pacman.Image = Properties.Resources.Left;
+                    pacman.Location = new System.Drawing.Point(s.CoordX[i], s.CoordY[i]);
+                    pacman.Margin = new System.Windows.Forms.Padding(0);
+                    pacman.Name = "pacman";// + player.ToString();
+                    pacman.Size = new System.Drawing.Size(25, 25);
+                    pacman.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+                    pacman.TabIndex = 4;
+                    pacman.TabStop = false;
+                    this.Controls.Add(pacman);
+                    pacmans.Insert(i, pacman);
                 }
             }
-            DrawBoardPacmans(s);
+            else { DrawBoardPacmans(s); }
             sendMessage = true;
         }
 
@@ -144,15 +155,27 @@ namespace pacman {
             for (int i = 0; i < client.NumPlayers(); i++ )
             {
                 PictureBox pacman = pacmans[i];
-                pacman.BackColor = System.Drawing.Color.Transparent;
-                pacman.Image = global::pacman.Properties.Resources.Left;
+                if(s.Key == "right")
+                {
+                    pacman.Image = Properties.Resources.Right;
+                    //pacman.Left += speed;
+                }
+                if (s.Key == "left")
+                {
+                    pacman.Image = Properties.Resources.Left;
+                    //pacman.Left -= speed;
+                }
+                if (s.Key == "up")
+                {
+                    pacman.Image = Properties.Resources.Up;
+                    //pacman.Top -= speed;
+                }
+                if (s.Key == "down")
+                {
+                    pacman.Image = Properties.Resources.down;
+                    //pacman.Top -= speed;
+                }
                 pacman.Location = new System.Drawing.Point(s.CoordX[i], s.CoordY[i]);
-                pacman.Margin = new System.Windows.Forms.Padding(0);
-                pacman.Name = "pacman" + player.ToString();
-                pacman.Size = new System.Drawing.Size(25, 25);
-                pacman.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-                pacman.TabIndex = 4;
-                pacman.TabStop = false;
                 this.Controls.Add(pacman);
             }           
         }
