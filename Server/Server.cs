@@ -5,6 +5,7 @@ using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Diagnostics;
+using System.Threading;
 
 
 namespace pacman
@@ -23,13 +24,13 @@ namespace pacman
             RemotingServices.Marshal(server, "PacmanServerObject",
                 typeof(PacmanServerObject));
 
-
-
-           /* RemotingConfiguration.RegisterWellKnownServiceType(
-                typeof(PacmanServerObject),
-                "PacmanServerObject",
-                WellKnownObjectMode.Singleton);*/
+            /* RemotingConfiguration.RegisterWellKnownServiceType(
+                 typeof(PacmanServerObject),
+                 "PacmanServerObject",
+                 WellKnownObjectMode.Singleton);*/
             Debug.WriteLine("Server Up");
+
+            server.WaitForClientsInput();
         }
 
         public void SetMAXPLAYERS(int max) { 

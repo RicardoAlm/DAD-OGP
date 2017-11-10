@@ -21,26 +21,21 @@ namespace pacman
         private IPacmanPlatform server;
         private PacmanClientObject client;
         private int port;
-        private int ROUND = 0;
-        //private string nickname;
         private int player;
-        private int round;
 
-        public Client(Form1 form, Delegate d)
+        public Client(Form1 form, Delegate d, Delegate p)
         {
             Debug.WriteLine("Connecting to server...");
-            ConnectToServer(form, d);
+            ConnectToServer(form, d, p);
             Debug.WriteLine("Connected to server");
-            MoveTheGame(form);
-           /* Debug.WriteLine("Updating Clients list...");
-            server.GetClients(port.ToString());
-            Debug.WriteLine("Clients list Updated");*/
+            /* Debug.WriteLine("Updating Clients list...");
+             server.GetClients(port.ToString());
+             Debug.WriteLine("Clients list Updated");*/
             //form.
         }
 
-        public void ConnectToServer(Form f, Delegate d)
+        public void ConnectToServer(Form f, Delegate d, Delegate p)
         {
-
             Random rnd = new Random();
             port = rnd.Next(49152, 65535);
 
@@ -48,11 +43,11 @@ namespace pacman
             { 
                 channel = new TcpChannel(port);
                 ChannelServices.RegisterChannel(channel, true);
-                server = (PacmanServerObject)Activator.GetObject(
-                    typeof(PacmanServerObject),
+                server = (IPacmanPlatform)Activator.GetObject(
+                    typeof(IPacmanPlatform),
                     "tcp://localhost:8086/PacmanServerObject");
 
-                client = new PacmanClientObject(f, d);
+                client = new PacmanClientObject(f, d, p);
                 RemotingServices.Marshal(client, "PacmanClientObject",
                     typeof(PacmanClientObject));
 
@@ -65,63 +60,53 @@ namespace pacman
                     server.Register(port.ToString(), "tcp://localhost:" + port + "/PacmanClientObject");
                 }
             }
-
-            
-            //player = server.NamePlayer();
-            //we need number of players to create them in form
         }
 
-
-        public void ReceiveState()
+        public void SendStateServer(State s)
         {
-
+            server.GetKeyboardInput(s);
         }
 
-        public void MoveTheGame(Form1 form)
+        public int NumPlayers()
         {
-            round = 1;
-            new Thread(() =>
+            return client.NumPlayers();
+        }
+
+        /*public void MoveTheGame(Form1 form)
+        {
+            new Thread (() =>
             {
-                while (!server.StartGame())
+                while (!client.IsGameReady())
                 {
-                    Thread.Sleep(1);                    
+                    Thread.Sleep(1);
                 }
 
-                server.Ready(player);
-                while (server.StartGame())
-                {   
-
-                    server.GetKeyboardInput(player, form.GetKeyInput());
-
-                    if (round == server.GetRound())
-                    {
-                        
-                        foreach (string key in server.PlayerMovements().Values)
-                        {
-                            
-                            form.MoveKey(key);
-                            form.SetFlag();
-                            round += 1;
-                        }
-                    }
+                while (true)
+                {
+                    State s = client.GetState();
+                    s.Key = form.GetKeyInput();
+                    server.GetKeyboardInput(s);
                 }
+
             }).Start();
-        }
-            
-            //thread to obj.moveplayer()
-           //* send to foRm what to do
-                
-
-            
-        
-        /*
-        public void SendInput(string move)
-        {
-            ROUND++;
-            server.GetKeyboardInput(player, move , ROUND);
         }*/
 
-        public string GetPort() { return port.ToString(); }
+
+
+        //thread to obj.moveplayer()
+    //* send to foRm what to do
+
+
+
+
+    /*
+    public void SendInput(string move)
+    {
+        ROUND++;
+        server.GetKeyboardInput(player, move , ROUND);
+    }*/
+
+    public string GetPort() { return port.ToString(); }
 
         public void BroadcastChatMsg(string ChatMsg)
         {

@@ -14,36 +14,32 @@ namespace pacman
     {
 
         private int MSEC_PER_ROUND = 100;
-        private int MAX_PLAYERS = 50;
-        //private int ROUND;
-        private List<string> urls;
-        private Dictionary<int, string> playermoves;
-        private Dictionary<string, PacmanClientObject> clients;
-        private int players;
-        private bool game = false;
-        private int round;
-        private Dictionary<int, bool> readyness;
-        //private System.Windows.Forms.Timer timer1;
+        private int MAX_PLAYERS;
+        private readonly List<string> _urls;
+        private readonly List<State> _queueStates;
+        private readonly Dictionary<string, PacmanClientObject> _clients;
+        private int _players;
+        private readonly State _board;
+        private bool _gameStart;
+
 
         public PacmanServerObject()
         {
-            playermoves = new Dictionary<int, string>();
-            clients = new Dictionary<string, PacmanClientObject>();
-            readyness = new Dictionary<int, bool>();
-            urls = new List<string>();
-            players = 0;
+            _gameStart = false;
+            _queueStates = new List<State>();
+            _clients = new Dictionary<string, PacmanClientObject>();
+            _urls = new List<string>();
+            _players = 0;
+            _board = new State();
+            _board.CoordX = new List<int>();
+            _board.CoordY = new List<int>();
 
-            System.Windows.Forms.Timer t = new System.Windows.Forms.Timer();
-
-            t.Interval = MSEC_PER_ROUND;
-            t.Tick += new EventHandler(timer_Tick);
-            t.Start();
         }
 
         public void Register(string nick, string url)
         {
             Debug.WriteLine("Registing Client...");
-            if (!clients.ContainsKey(nick))
+            if (!_clients.ContainsKey(nick))
             {
                 Debug.WriteLine("Client name available");
                 PacmanClientObject remoteObj = (PacmanClientObject)Activator.GetObject(
@@ -54,11 +50,11 @@ namespace pacman
                 else
                 {
                     Debug.WriteLine("Adding Client to List...");
-                    lock (clients)
+                    lock (_clients)
                     {
-                        clients.Add(nick, remoteObj);
-                        urls.Add(url);
-                        players++;
+                        _clients.Add(nick, remoteObj);
+                        _urls.Add(url);
+                        _players++;
                     }
                     Debug.WriteLine("Client Added");
                 }
@@ -72,49 +68,78 @@ namespace pacman
         public void SetMaxplayers(int max)
         {
             MAX_PLAYERS = max;
+
             new Thread(() =>
             {
                 int id = 0;
-                while (players != MAX_PLAYERS) { Thread.Sleep(1); } 
-                foreach(string clientNick in clients.Keys)
+                while (_players != MAX_PLAYERS) { Thread.Sleep(1); } 
+                foreach(string clientNick in _clients.Keys)
                 {
-                    clients[clientNick].GetServerClients(clientNick, urls, id);
+                    _board.Id = id;
+                    _board.CoordX.Insert(id, 8);
+                    _board.CoordY.Insert(id, (id + 1) * 40);
+                    _clients[clientNick].GetServerClients(clientNick, _urls, id);
                     id++;
                 }
+                _gameStart = true;
             }).Start();
         }
 
 
         //--- Server methods ---
         
-        public void GetKeyboardInput(int player, string key) {
-            //if(this.ROUND == roundId)
-            bool check = false;
-            if (playermoves.Count != 0)
-            {
-                
-                foreach (int plr in playermoves.Keys)
-                {
-                    
-                    if (plr == player)
-                    {
-                        playermoves[player] = key;
-                        check = true;
-                        break;
-                    }
-                    
-                }
-                if (check == false)
-                {
-                    playermoves.Add(player, key);
-                }
-            }
-            else
-            {
-                
-                playermoves.Add(player, key);
-            }
+        public void GetKeyboardInput(State s) {
+            _queueStates.Add(s);
+        }
 
+   
+
+        public void WaitForClientsInput()
+        {
+            _board.Round = 0;
+            new Thread(() =>
+            {
+                while (!_gameStart){}
+                while (true)
+                    {
+                        Thread.Sleep(MSEC_PER_ROUND); //+delay?
+                        IncrementePosition();
+                        _queueStates.Clear();
+                        foreach (PacmanClientObject c in _clients.Values)
+                        {
+                            c.SendState(_board);
+                            c.MoveTheGame();
+                        }
+                    }
+            }).Start();
+        }
+
+        public void IncrementePosition()
+        {
+            foreach (State s in _queueStates)
+            {
+                Debug.WriteLine("iD:" + s.Id + "Key:" + s.Key);
+                Debug.WriteLine("BoardCount:"+_board.CoordY.Count);
+
+                if (s.Key.Equals("up"))
+                {
+                    _board.CoordY[s.Id] =  _board.CoordY[s.Id] - 5;
+                }
+                if (s.Key.Equals("down"))
+                {
+                    _board.CoordY[s.Id] = _board.CoordY[s.Id] + 5;
+                }
+                if (s.Key.Equals("left"))
+                {
+                    _board.CoordX[s.Id]=  _board.CoordX[s.Id] - 5;
+                }
+                if (s.Key.Equals("right"))
+                {
+                    _board.CoordX[s.Id] = _board.CoordX[s.Id] + 5;
+                }
+                if (s.Key.Equals("")){}
+            }
+            _board.Round++;
         }
 
         /*
@@ -143,57 +168,6 @@ namespace pacman
         }
         */
 
-        public Dictionary<int, string> PlayerMovements()
-        {
-            return playermoves;
-        }
-
-        public void timer_Tick(object sender, EventArgs e)
-        {
-            if (game == false)
-            {
-                if (clients.Count == MAX_PLAYERS)
-                {
-                    game = true;
-                    round = 0;
-                    //playermoves.Clear();
-                    foreach (bool ready in readyness.Values)
-                        {
-                            if (ready == false)
-                            {
-                                return;
-                            }
-                    }
-                    
-                    
-                }
-            }
-            else
-            {
-                
-                round += 1;
-            }
-        }
-
-        public void Ready(int player)
-        {
-            readyness.Add(player,true);
-        }
-
-        public int GetRound()
-        {
-            return round;
-        }
-
-        public bool StartGame()
-        {
-            return game;
-        }
-
-        public int GetPlayerName()
-        {
-            return players;
-        }
     }
 
 
@@ -201,19 +175,23 @@ namespace pacman
     {
         readonly Form _form;
         readonly Delegate _displaydelegate;
+        readonly Delegate _drawpDelegate;
         private int _id;
+        private bool _gameReady;
         private List<int> _msgSeqVector;
         private readonly List <PacmanClientObject> _clients;
         private readonly Dictionary<Dictionary <List<int>, string>, int> _messageQueue;
-        public string playermove; 
-        public int ROUND;
 
-        public PacmanClientObject(Form form, Delegate d)
+
+
+        public PacmanClientObject(Form form, Delegate d, Delegate p)
         {
             _form = form;
             _displaydelegate = d;
+            _drawpDelegate = p;
             _clients = new List<PacmanClientObject>();
             _messageQueue = new Dictionary<Dictionary<List<int>, string>, int>();
+            _gameReady = false;
         }
 
         //---------------------Server Side-----------------------------------------------
@@ -221,6 +199,7 @@ namespace pacman
         {
             _id = id;
             _msgSeqVector = new List<int>(urls.Count);
+
             for (int i = 0; i < urls.Count ; i++ )
             {
                 _msgSeqVector.Insert(i,0);
@@ -239,8 +218,28 @@ namespace pacman
 
         //---Client Methods ---
 
+        public void SendState(State s)
+        {
+            s.Id = _id;
+            _form.Invoke(_drawpDelegate, new object[] { s });
+        }
 
-        public void WaitForStateUpdate() { }
+        public void MoveTheGame()
+        {
+            _gameReady = true;
+        }
+
+        public bool IsGameReady()
+        {
+            return _gameReady;
+        }
+
+
+
+        public int NumPlayers()
+        {
+            return _clients.Count + 1;
+        }
         //---------------------Peer Side-----------------------------------------------
         /// <summary>
         /// Receives a message from a machine with his correspondent id message vector.
@@ -339,7 +338,19 @@ namespace pacman
                 }
             }).Start();
         }
-
-
     }
+
+    [Serializable]
+    public class State
+    {
+
+        public State(){}
+
+        public int Id { get ; set; }
+        public int Round { get; set; }
+        public List<int> CoordX { get; set; }
+        public List<int> CoordY { get; set; }
+        public string Key { get; set; }
+    }
+
 }

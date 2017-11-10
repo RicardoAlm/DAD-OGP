@@ -12,7 +12,13 @@ using System.Windows.Forms;
 
 
 namespace pacman {
-    public partial class Form1 : Form {
+
+    public partial class Form1 : Form
+    {
+
+        private List<PictureBox> pacmans;
+        private bool sendMessage = false;
+        private int _id;
 
         // direction player is moving in. Only one will be true
         bool goup;
@@ -48,13 +54,28 @@ namespace pacman {
 
         Client client = null;
         public delegate void UpdateChat(string msg);
+        public delegate void ReDrawPacman(State s);
 
         public Form1() {
             InitializeComponent();
-            //if (client == null)
-            DrawPacmans();
-            client = new Client(this, new UpdateChat(this.ChangeChat));
+            client = new Client(this, new UpdateChat(this.ChangeChat), new ReDrawPacman(this.Redraw));
+            pacmans = new List<PictureBox>();
             label2.Visible = false;
+            _id = 0;
+        }
+
+        public void Redraw(State s)
+        {
+            if (s.Round == 1)
+            {
+                _id = s.Id;
+                for (int i = 0; i < client.NumPlayers(); i++)
+                {
+                    pacmans.Insert(i, new PictureBox());
+                }
+            }
+            DrawBoardPacmans(s);
+            sendMessage = true;
         }
 
         //get input ***************
@@ -77,7 +98,7 @@ namespace pacman {
                 return "right";
             }
 
-            return null;
+            return "";
         }
 
         private void keyisdown(object sender, KeyEventArgs e) {
@@ -118,33 +139,21 @@ namespace pacman {
             }
         }
 
-        private void DrawPacmans() //Quando state estiver implementado, para cada player desenhar na posicao e direcao indicada, recebe state
-            //fazer funcao para initial state
-
-        //state tem que ter : direcao e posicao de cada cliente, moedas "comidas",
+        private void DrawBoardPacmans(State s) 
         {
-            //e preciso ir buscar lista de clientes ou numero
-            List<int> clients = new List<int>(); //lista para testar
-            clients.Add(1);
-            clients.Add(2);
-            clients.Add(3);
-            clients.Add(4);
-            //for player in playerList:
-            //string name = string.Concat("pacman", i.ToString());
-            //PictureBox pacman1 = new PictureBox { Image = global::pacman.Properties.Resources.Left , Width = pacman.Width ,Height=pacman.Height};
-            foreach (int player in clients) {
-                //add condition para nao desenhar o proprio player!=_id
-                PictureBox pacman1 = new PictureBox();
-                pacman1.BackColor = System.Drawing.Color.Transparent;
-                pacman1.Image = global::pacman.Properties.Resources.Left;
-                pacman1.Location = new System.Drawing.Point(8, player * 40);
-                pacman1.Margin = new System.Windows.Forms.Padding(0);
-                pacman1.Name = "pacman" + player.ToString();
-                pacman1.Size = new System.Drawing.Size(25, 25);
-                pacman1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-                pacman1.TabIndex = 4;
-                pacman1.TabStop = false;
-                this.Controls.Add(pacman1);
+            for (int i = 0; i < client.NumPlayers(); i++ )
+            {
+                PictureBox pacman = pacmans[i];
+                pacman.BackColor = System.Drawing.Color.Transparent;
+                pacman.Image = global::pacman.Properties.Resources.Left;
+                pacman.Location = new System.Drawing.Point(s.CoordX[i], s.CoordY[i]);
+                pacman.Margin = new System.Windows.Forms.Padding(0);
+                pacman.Name = "pacman" + player.ToString();
+                pacman.Size = new System.Drawing.Size(25, 25);
+                pacman.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+                pacman.TabIndex = 4;
+                pacman.TabStop = false;
+                this.Controls.Add(pacman);
             }           
         }
 
@@ -164,16 +173,23 @@ namespace pacman {
         private void timer1_Tick(object sender, EventArgs e)
         {
             label1.Text = "Score: " + score;
+            
+            if (sendMessage)
+            {
+                State newState = new State();
+                newState.Id = _id;
+                newState.Key = GetKeyInput();
+                client.SendStateServer(newState);
+                sendMessage=false;
+            }
 
+            /*
             //qual e o player ????
             //buscar string ao cliente e mover consoante a string
 
             //move player
             if (flag == true)
-            {
-
-
-
+            {              
                 //move player
                 if (keypressed != null)
                 {
@@ -273,7 +289,7 @@ namespace pacman {
                     ghost3y = -ghost3y;
                 }
                 flag = false;
-            }
+            }*/
         }
 
         private void tbMsg_KeyDown(object sender, KeyEventArgs e) {
