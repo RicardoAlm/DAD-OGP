@@ -31,6 +31,8 @@ namespace pacman
             _urls = new List<string>();
             _players = 0;
             _board = new State();
+            _board.GhostsX = new List<int>();
+            _board.GhostsY = new List<int>();
             _board.CoordX = new List<int>();
             _board.CoordY = new List<int>();
 
@@ -76,9 +78,15 @@ namespace pacman
                 foreach(string clientNick in _clients.Keys)
                 {
                     _board.Id = id;
-                    _board.Alive = true;
+                    //_board.Alive = true;
                     _board.CoordX.Insert(id, 8);
                     _board.CoordY.Insert(id, (id + 1) * 40);
+                    _board.GhostsX.Add(301); // 0 = pink
+                    _board.GhostsY.Add(72);
+                    _board.GhostsX.Add(180); // 1 = red
+                    _board.GhostsY.Add(73);
+                    _board.GhostsX.Add(221); //2 = yellow
+                    _board.GhostsY.Add(273);
                     _clients[clientNick].GetServerClients(clientNick, _urls, id);
                     id++;
                 }
@@ -117,6 +125,11 @@ namespace pacman
 
         public void IncrementePosition()
         {
+            int speed = 5;
+            int boardRight = 320;
+            int boardBottom = 320;
+            int boardLeft = 0;
+            int boardTop = 40;
             foreach (State s in _queueStates)
             {
                 // Debug.WriteLine("iD:" + s.Id + "Key:" + s.Key);
@@ -124,25 +137,45 @@ namespace pacman
                 
                 if (s.Key.Equals("up"))
                 {
-                    _board.CoordY[s.Id] = _board.CoordY[s.Id] - 5;
+                    if(!(_board.CoordY[s.Id] - speed < boardTop)) { _board.CoordY[s.Id] -= speed; }
                 }
                 if (s.Key.Equals("down"))
                 {
-                    _board.CoordY[s.Id] = _board.CoordY[s.Id] + 5;
+                    if (!(_board.CoordY[s.Id] + speed > boardBottom)) { _board.CoordY[s.Id] += speed; }
                 }
                 if (s.Key.Equals("left"))
                 {
-                    _board.CoordX[s.Id] = _board.CoordX[s.Id] - 5;
+                    if (!(_board.CoordX[s.Id] - speed < boardLeft))  { _board.CoordX[s.Id] -= speed; }
+                   
                 }
                 if (s.Key.Equals("right"))
                 {
-                    _board.CoordX[s.Id] = _board.CoordX[s.Id] + 5;
+                    if (!(_board.CoordX[s.Id] + speed > boardRight)) { _board.CoordX[s.Id] += speed; }
+                   
                 }
                 if (s.Key.Equals("")) { }
             }
-        
-                
-            
+
+            /*
+            int pinkmovL = 5;
+            int pinkmovR = 5;
+
+            //faltam as picture boxes;
+            _board.GhostsX[0] += pinkmovL;
+            _board.GhostsY[0] += pinkmovR;
+            if (_board.GhostsX[0] - 5 < boardLeft || _board.GhostsX[0] - 5 > boardRight)
+            {
+                pinkmovL = - pinkmovL;
+            }
+            if (_board.GhostsY[0] - 5 < boardTop || _board.GhostsY[0] - 5 > boardBottom)
+            {
+                pinkmovR = -pinkmovR;
+            }
+
+            _board.GhostsX[1] += 5;
+            _board.GhostsX[2] += 5;
+
+            */
             _board.Round++;
         }
 
@@ -355,7 +388,9 @@ namespace pacman
         public List<int> CoordX { get; set; }
         public List<int> CoordY { get; set; }
         public string Key { get; set; }
-        public bool Alive { get; set; }
+        //public bool Alive { get; set; }
+        public List<int> GhostsX { get; set; }
+        public List<int> GhostsY { get; set; }
     }
 
 }

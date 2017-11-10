@@ -292,6 +292,5 @@ namespace pacman {
         {
 
         }
-
     }
 }
