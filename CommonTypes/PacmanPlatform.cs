@@ -33,7 +33,9 @@ namespace pacman
             _board = new State();
             _board.CoordX = new List<int>();
             _board.CoordY = new List<int>();
-
+            _board.GhostX = new List<int>();
+            _board.GhostY = new List<int>();
+            _board.GhostInvert = new List<bool>();
         }
 
         public void Register(string nick, string url)
@@ -83,6 +85,17 @@ namespace pacman
                     id++;
                 }
                 _gameStart = true;
+                _board.GhostX.Insert(0,180);
+                _board.GhostY.Insert(0,73);
+                _board.GhostX.Insert(1,221);
+                _board.GhostY.Insert(1,273);
+                _board.GhostX.Insert(2,301);
+                _board.GhostY.Insert(2,72);
+                for (int i = 0; i < 4; i++)
+                {
+                    _board.GhostInvert.Insert(i,true);
+                }
+                
             }).Start();
         }
 
@@ -139,38 +152,47 @@ namespace pacman
                     _board.CoordX[s.Id] = _board.CoordX[s.Id] + 5;
                 }
                 if (s.Key.Equals("")) { }
-            }
-        
+                for (int i = 0; i < 4; i++)
+                {
+                    _board.GhostInvert[i] = s.GhostInvert[i];
+                }
                 
-            
+            }
+            if (_board.GhostInvert[0])
+            {
+                _board.GhostX[0] = _board.GhostX[0] + 5;
+            }else
+            {
+                _board.GhostX[0] = _board.GhostX[0] - 5;
+            }
+            if (_board.GhostInvert[1])
+            {
+                _board.GhostX[1] = _board.GhostX[1] + 5;
+            }else
+            {
+                _board.GhostX[1] = _board.GhostX[1] - 5;
+            }
+            if (_board.GhostInvert[2])
+            {
+                _board.GhostX[2] = _board.GhostX[2] + 5;
+            }
+            else
+            {
+                _board.GhostX[2] = _board.GhostX[2] - 5;
+            }
+            if (_board.GhostInvert[3])
+            {
+                _board.GhostY[2] = _board.GhostY[2] + 5;
+            }
+            else
+            {
+                _board.GhostY[2] = _board.GhostY[2] - 5;
+            }
+
             _board.Round++;
         }
 
-        /*
-        //espera MSEC_PER_ROUND pelo input dos clientes, apos esse tempo chama ComputeStates() para gerar o proximo estado 
-        public void WaitForClientsInput() 
-        {
-            new Thread(() =>
-            {
-                Thread.Sleep(MSEC_PER_ROUND); //+delay?
-                ComputeUpdates();
-
-
-            }).Start();
-        }
-
-            public void ComputeUpdates() //calcula state
-        {
-            NextRound();
-        }
-
-        public void SendStateUpdate() { }
-
-        public void NextRound()
-        {
-            this.ROUND++;
-        }
-        */
+        
 
     }
 
@@ -354,6 +376,9 @@ namespace pacman
         public int Round { get; set; }
         public List<int> CoordX { get; set; }
         public List<int> CoordY { get; set; }
+        public List<int> GhostX { get; set; }
+        public List<int> GhostY { get; set; }
+        public List<bool> GhostInvert { get; set; }
         public string Key { get; set; }
         public bool Alive { get; set; }
     }

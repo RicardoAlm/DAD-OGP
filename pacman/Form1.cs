@@ -50,6 +50,7 @@ namespace pacman {
         Client client = null;
         public delegate void UpdateChat(string msg);
         public delegate void ReDrawPacman(State s);
+        State newState;
 
         public Form1() {
             InitializeComponent();
@@ -57,6 +58,8 @@ namespace pacman {
             pacmans = new List<PictureBox>();
             label2.Visible = false;
             _id = 0;
+            newState = new State();
+            newState.GhostInvert = new List<bool>();
         }
 
         public void Redraw(State s)
@@ -66,6 +69,8 @@ namespace pacman {
                 scores = new List<int>(Enumerable.Repeat(0, client.NumPlayers()));
                 ready = true;
                 _id = s.Id;
+
+                
                 for (int i = 0; i < client.NumPlayers(); i++)
                 {
                     PictureBox pacman = new PictureBox();
@@ -82,9 +87,24 @@ namespace pacman {
                     this.Controls.Add(pacman);
                     pacmans.Insert(i, pacman);
                 }
+                for (int i = 0; i < 4; i++)
+                {
+                    newState.GhostInvert.Insert(i,s.GhostInvert[i]);
+                }
             }
-            else { DrawBoardPacmans(s); }
+            else {
+                DrawBoardPacmans(s);
+                MoveGhost(s);
+
+            }
             sendMessage = true;
+        }
+
+        public void MoveGhost(State s)
+        {
+            redGhost.Location = new System.Drawing.Point(s.GhostX[0], s.GhostY[0]);
+            yellowGhost.Location = new System.Drawing.Point(s.GhostX[1], s.GhostY[1]);
+            pinkGhost.Location = new System.Drawing.Point(s.GhostX[2], s.GhostY[2]);
         }
 
         //get input ***************
@@ -170,19 +190,60 @@ namespace pacman {
             
             if (sendMessage)
             {
-                State newState = new State();
+                
                 newState.Id = _id;
                 newState.Key = GetKeyInput();
-         
+
+                //check if phantoms hit wall////////////////////////////////////////////////////////
+                if (redGhost.Bounds.IntersectsWith(pictureBox1.Bounds))
+                {
+                    newState.GhostInvert[0] = true;
+                }
+                else if (redGhost.Bounds.IntersectsWith(pictureBox2.Bounds))
+                {
+                    newState.GhostInvert[0] = false;
+                }
+                if (yellowGhost.Bounds.IntersectsWith(pictureBox3.Bounds))
+                {
+                    newState.GhostInvert[1] = true;
+                }
+
+                else if (yellowGhost.Bounds.IntersectsWith(pictureBox4.Bounds))
+                {
+                    newState.GhostInvert[1] = false;
+                }
+
+                if (pinkGhost.Left < boardLeft ||
+                        pinkGhost.Left > boardRight ||
+                        (pinkGhost.Bounds.IntersectsWith(pictureBox1.Bounds)) ||
+                        (pinkGhost.Bounds.IntersectsWith(pictureBox2.Bounds)) ||
+                        (pinkGhost.Bounds.IntersectsWith(pictureBox3.Bounds)) ||
+                        (pinkGhost.Bounds.IntersectsWith(pictureBox4.Bounds)))
+                {
+                    newState.GhostInvert[2] = !newState.GhostInvert[2];
+                    //ghost3x = -ghost3x;
+                }
+                if (pinkGhost.Top < boardTop || pinkGhost.Top + pinkGhost.Height > boardBottom - 2)
+                {                    
+                    newState.GhostInvert[3] = !newState.GhostInvert[3];
+                    //ghost3y = -ghost3y;
+                }
+                ///////////////////////////////////////////////////////////////////////////////////
+
                 client.SendStateServer(newState);
                 sendMessage=false;
             }
 
             keypressed = "";
+            
+
 
             if (ready)
             {
-                redGhost.Left += ghost1;
+
+                
+
+                /*redGhost.Left += ghost1;
                 yellowGhost.Left += ghost2;
                 // if the red ghost hits the picture box 4 then wereverse the speed
                 if (redGhost.Bounds.IntersectsWith(pictureBox1.Bounds))
@@ -197,7 +258,7 @@ namespace pacman {
                 else if (yellowGhost.Bounds.IntersectsWith(pictureBox4.Bounds))
                     ghost2 = -ghost2;
                 //moving ghosts and bumping with the walls end
-                //for loop to check walls, ghosts and points
+                //for loop to check walls, ghosts and points*/
                 foreach (Control x in this.Controls)
                 {
                     if (x is PictureBox && x.Tag == "dead" && dead == client.NumPlayers())
@@ -243,6 +304,7 @@ namespace pacman {
                         }
                     }
                 }
+                /*
                 pinkGhost.Left += ghost3x;
                 pinkGhost.Top += ghost3y;
 
@@ -259,6 +321,7 @@ namespace pacman {
                 {
                     ghost3y = -ghost3y;
                 }
+                */
             }
             
         }
