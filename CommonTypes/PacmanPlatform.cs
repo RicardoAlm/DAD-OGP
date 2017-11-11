@@ -78,7 +78,7 @@ namespace pacman
                 foreach(string clientNick in _clients.Keys)
                 {
                     _board.Id = id;
-                    _board.Alive = true;
+                    //_board.Alive = true;
                     _board.CoordX.Insert(id, 8);
                     _board.CoordY.Insert(id, (id + 1) * 40);
                     _clients[clientNick].GetServerClients(clientNick, _urls, id);
@@ -130,6 +130,11 @@ namespace pacman
 
         public void IncrementePosition()
         {
+            int speed = 5;
+            int boardRight = 320;
+            int boardBottom = 320;
+            int boardLeft = 0;
+            int boardTop = 40;
             foreach (State s in _queueStates)
             {
                 // Debug.WriteLine("iD:" + s.Id + "Key:" + s.Key);
@@ -137,19 +142,21 @@ namespace pacman
                 
                 if (s.Key.Equals("up"))
                 {
-                    _board.CoordY[s.Id] = _board.CoordY[s.Id] - 5;
+                    if(!(_board.CoordY[s.Id] - speed < boardTop)) { _board.CoordY[s.Id] -= speed; }
                 }
                 if (s.Key.Equals("down"))
                 {
-                    _board.CoordY[s.Id] = _board.CoordY[s.Id] + 5;
+                    if (!(_board.CoordY[s.Id] + speed > boardBottom)) { _board.CoordY[s.Id] += speed; }
                 }
                 if (s.Key.Equals("left"))
                 {
-                    _board.CoordX[s.Id] = _board.CoordX[s.Id] - 5;
+                    if (!(_board.CoordX[s.Id] - speed < boardLeft))  { _board.CoordX[s.Id] -= speed; }
+                   
                 }
                 if (s.Key.Equals("right"))
                 {
-                    _board.CoordX[s.Id] = _board.CoordX[s.Id] + 5;
+                    if (!(_board.CoordX[s.Id] + speed > boardRight)) { _board.CoordX[s.Id] += speed; }
+                   
                 }
                 if (s.Key.Equals("")) { }
                 for (int i = 0; i < 4; i++)
