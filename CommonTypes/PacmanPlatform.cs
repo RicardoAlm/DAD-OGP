@@ -387,7 +387,7 @@ namespace pacman
         public List<int> GhostY { get; set; }
         public List<bool> GhostInvert { get; set; }
         public string Key { get; set; }
-        public bool Alive { get; set; }
+        //public bool Alive { get; set; }
     }
 
 }
