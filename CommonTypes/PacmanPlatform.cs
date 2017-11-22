@@ -38,7 +38,10 @@ namespace pacman
             _board.CoordY = new List<int>();
             _board.GhostX = new List<int>();
             _board.GhostY = new List<int>();
+            _board.Score = new List<int>();
             _board.Alive = new List<bool>();
+            _board.CoinsEaten = new List<bool>();
+            _board.GameRunning = true;
             movementRed = true;
             movementYellow = true;
             movementPinkX = true;
@@ -86,10 +89,15 @@ namespace pacman
                 {
                     _board.Id = id;
                     _board.Alive.Insert(id,true);
+                    _board.Score.Insert(id, 0);
                     _board.CoordX.Insert(id, 8);
                     _board.CoordY.Insert(id, (id + 1) * 40);
                     _clients[clientNick].GetServerClients(clientNick, _urls, id);
                     id++;
+                }
+                for (int i = 0; i < 60; i++)
+                {
+                    _board.CoinsEaten.Insert(i, true);
                 }
                 _gameStart = true;
                 _board.GhostX.Insert(0,180);
@@ -102,24 +110,22 @@ namespace pacman
             }).Start();
         }
 
-
         //--- Server methods ---
-        
         public void GetKeyboardInput(State s) {
             _queueStates.Add(s);
         }
 
-   
-
         public void WaitForClientsInput()
         {
             _board.Round = 0;
+            bool running = true;
             new Thread(() =>
             {
                 while (!_gameStart){ Thread.Sleep(1); }
-                while (true)
+                while (running)
                     {
                         Thread.Sleep(MSEC_PER_ROUND); //+delay?
+                        GameFinish();
                         IncrementePosition();
                         _queueStates.Clear();
                         foreach (PacmanClientObject c in _clients.Values)
@@ -127,8 +133,84 @@ namespace pacman
                             c.SendState(_board);
                             c.MoveTheGame();
                         }
+                        if (_board.GameRunning == false)
+                        {
+                            running = false;
+                        }
                     }
             }).Start();
+        }
+
+        public void Coins_collision_pacman(int x,int y,int id)
+        {
+            for (int i = 1; i < 9; i++)
+            {
+                if (_board.CoinsEaten[i - 1] == true && x > 0 && x < 23 && y < 40 * i + 15 && y > 40 * i - 25)
+                {
+                        _board.CoinsEaten[i - 1] = false;
+                        _board.Score[id] += 1;
+                }
+
+                else if (_board.CoinsEaten[i + 7] == true && x > 23 && x < 63 && y < 40 * i + 15 && y > 40 * i - 25)
+                {
+                        _board.CoinsEaten[i + 7] = false;
+                        _board.Score[id] += 1;
+                }
+
+                else if (_board.CoinsEaten[i + 12] == true && i > 3 && x > 63 && x < 103 && y < 40 * i + 15 && y > 40 * i - 25)
+                {
+                        _board.CoinsEaten[i + 12] = false;
+                        _board.Score[id] += 1;
+                }
+                
+                else if (_board.CoinsEaten[i + 20] == true && i < 6 && x > 103 && x < 143 && y < 40 * i + 15 && y > 40 * i - 25)
+                {  
+                            _board.CoinsEaten[i + 20] = false;
+                            _board.Score[id] += 1; 
+                }
+
+                else if (_board.CoinsEaten[i + 25] == true && x > 143 && x < 183 && y < 40 * i + 15 && y > 40 * i - 25)
+                {
+                        _board.CoinsEaten[i + 25] = false;
+                        _board.Score[id] += 1;
+                }
+
+                else if (_board.CoinsEaten[i + 33] == true && x > 183 && x < 223 && y < 40 * i + 15 && y > 40 * i - 25)
+                {
+                        _board.CoinsEaten[i + 33] = false;
+                        _board.Score[id] += 1;
+                }
+
+                else if (_board.CoinsEaten[i + 38] == true && i > 3 && x > 223 && x < 263 && y < 40 * i + 15 && y > 40 * i - 25)
+                {
+                            _board.CoinsEaten[i + 38] = false;
+                            _board.Score[id] += 1;
+                }
+
+                else if (_board.CoinsEaten[i + 46] == true && i < 6 && x > 263 && x < 303 && y < 40 * i + 15 && y > 40 * i - 25)
+                {
+                            _board.CoinsEaten[i + 46] = false;
+                            _board.Score[id] += 1;
+                }
+
+                else if (_board.CoinsEaten[i + 51] == true && x > 303 && x < 343 && y < 40 * i + 15 && y > 40 * i - 25)
+                {
+                         _board.CoinsEaten[i + 51] = false;
+                        _board.Score[id] += 1;
+                }
+            }
+        }
+
+        public void GameFinish()
+        {
+            if(!_board.CoinsEaten.Any(c => c == true) || !_board.Alive.Any(c => c == true))
+            {
+
+                int indexMax = !_board.Score.Any() ? -1 : _board.Score.Select((value, index) => new { Value = value, Index = index }).Aggregate((a, b) => (a.Value > b.Value) ? a : b).Index;
+
+                _board.Winner = indexMax.ToString();
+                _board.GameRunning = false;
+            }
         }
 
         public bool Walls_collision_pacman(int x,int y)
@@ -143,25 +225,25 @@ namespace pacman
             //pacman x=8 Y=40 w25 h25
             //-25 + 15
             //hit first wall
-            if (x > 63 & x < 103 & y < 135)
+            if (x > 63 && x < 103 && y < 135)
             {
                 return true;
             }
 
             //hit second wall
-            if (x > 223 & x < 263 & y < 135)
+            else if (x > 223 && x < 263 && y < 135)
             {
                 return true;
             }
 
             //hit third wall
-            if (x > 103 & x < 143 & y > 215)
+            else if (x > 103 && x < 143 && y > 215)
             {
                 return true;
             }
 
             //hit fourth wall
-            if (x > 263 & x < 303 & y < 215)
+            else if (x > 263 && x < 303 && y > 215)
             {
                 return true;
             }            
@@ -171,19 +253,19 @@ namespace pacman
         public bool Ghosts_collision_pacman(int x, int y)
         {            
             //hit redGhost
-            if (x > _board.GhostX[0] - 25 & x < _board.GhostX[0] + 30 & y < _board.GhostY[0] + 30 & y > _board.GhostY[0])
+            if (x > _board.GhostX[0] - 25 && x < _board.GhostX[0] + 30 && y < _board.GhostY[0] + 30 && y > _board.GhostY[0] - 25)
             {
                 return true;
             }
 
             //hit yellowGhost
-            if (x > _board.GhostX[1] - 25 & x < _board.GhostX[1] + 30 & y < _board.GhostY[1] + 30 & y > _board.GhostY[1])
+            else if (x > _board.GhostX[1] - 25 && x < _board.GhostX[1] + 30 && y < _board.GhostY[1] + 30 && y > _board.GhostY[1] - 25)
             {
                 return true;
             }
 
             //hit pinkGhost
-            if (x > _board.GhostX[2] - 25 & x < _board.GhostX[2] + 30 & y < _board.GhostY[2] + 30 & y > _board.GhostY[2])
+            else if (x > _board.GhostX[2] - 25 && x < _board.GhostX[2] + 30 && y < _board.GhostY[2] + 30 && y > _board.GhostY[2] - 25)
             {
                 return true;
             }
@@ -199,7 +281,7 @@ namespace pacman
             }
 
             //hit second wall
-            if (x > 218)
+            else if (x > 218)
             {
                 movementRed=false;                
             }
@@ -215,7 +297,7 @@ namespace pacman
             }
 
             //hit fourth wall
-            if (x > 258)
+            else if (x > 258)
             {
                 movementYellow = false;
             }
@@ -231,31 +313,31 @@ namespace pacman
             {
                 movementPinkX = !movementPinkX;
             }
-            if (x < boardLeft + 15)
+            else if (x < boardLeft + 15)
             {
                 movementPinkX = !movementPinkX;
             }
 
             //hit first wall
-            if (x > 58 & x < 103 & y < 135)
+            else if (x > 58 && x < 103 && y < 135)
             {
                 movementPinkX = !movementPinkX;
             }
 
             //hit second wall
-            if (x > 218 & x < 263 & y < 135)
+            else if (x > 218 && x < 263 && y < 135)
             {
                 movementPinkX = !movementPinkX;
             }
 
             //hit third wall
-            if (x > 98 & x < 143 & y > 210)
+            else if (x > 98 && x < 143 && y > 210)
             {
                 movementPinkX = !movementPinkX;
             }
 
             //hit fourth wall
-            if (x > 258 & x < 303 & y > 210)
+            else if (x > 258 && x < 303 && y > 210)
             {
                 movementPinkX = !movementPinkX;
             }
@@ -271,7 +353,7 @@ namespace pacman
             {
                 movementPinkY = !movementPinkY;
             }
-            if (y + 30 > boardBottom - 2)
+            else if (y + 30 > boardBottom - 2)
             {
                 movementPinkY = !movementPinkY;
             }
@@ -288,47 +370,50 @@ namespace pacman
             foreach (State s in _queueStates)
             {
                 // Debug.WriteLine("iD:" + s.Id + "Key:" + s.Key);
-                // Debug.WriteLine("BoardCount:"+_board.CoordY.Count);
+                // Debug.WriteLine("BoardCount:"+_board.CoordY.Count);     
 
                 //checking first and after cause ghost can hit player too
                 if (Ghosts_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]))
                 {
                     _board.Alive[s.Id] = false;
                 }
-
-
+                
                 if (_board.Alive[s.Id] == true)
                 {
                     if (s.Key.Equals("up"))
                     {
                         if (!(_board.CoordY[s.Id] - speed < boardTop)) { _board.CoordY[s.Id] -= speed; }
                     }
-                    if (s.Key.Equals("down"))
+                    else if (s.Key.Equals("down"))
                     {
                         if (!(_board.CoordY[s.Id] + speed > boardBottom)) { _board.CoordY[s.Id] += speed; }
                     }
-                    if (s.Key.Equals("left"))
+                    else if (s.Key.Equals("left"))
                     {
                         if (!(_board.CoordX[s.Id] - speed < boardLeft)) { _board.CoordX[s.Id] -= speed; }
 
                     }
-                    if (s.Key.Equals("right"))
+                    else if (s.Key.Equals("right"))
                     {
                         if (!(_board.CoordX[s.Id] + speed > boardRight)) { _board.CoordX[s.Id] += speed; }
 
                     }
-                    if (s.Key.Equals("")) { }
+                    else if (s.Key.Equals("")) { }
 
                     //check if hits wall and ghost if does kill it
                     if (Walls_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]) || Ghosts_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]))
                     {
                         _board.Alive[s.Id] = false;
                     }
+                    //
+                    if (!s.Key.Equals(""))
+                    {
+                        Coins_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id],s.Id);
+                    }
                 }
-
-                
+            }   
             //////////////GHOSTS//////////////    
-            }//redghost
+            //redghost
             if (Walls_collision_redghost(_board.GhostX[0]))
             {
                 _board.GhostX[0] = _board.GhostX[0] + speed;                
@@ -551,8 +636,12 @@ namespace pacman
         public List<int> CoordY { get; set; }
         public List<int> GhostX { get; set; }
         public List<int> GhostY { get; set; }
+        public List<int> Score { get; set; }
         public string Key { get; set; }
+        public bool GameRunning { get; set; }
+        public string Winner { get; set; }
         public List<bool> Alive { get; set; }
+        public List<bool> CoinsEaten { get; set; }
     }
 
 }

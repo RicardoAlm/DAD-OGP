@@ -25,18 +25,7 @@ namespace pacman {
         bool godown;
         bool goleft;
         bool goright;
-        string keypressed;
-        int dead ;
-        bool ready =false;
-
-        int boardRight = 320;
-        int boardBottom = 320;
-        int boardLeft = 0;
-        int boardTop = 40;
-        //player speed
-        int speed = 5;
-
-        int score = 0; int total_coins = 61;
+        int score = 0;
         List<int> scores;
 
 
@@ -59,9 +48,8 @@ namespace pacman {
             if (s.Round == 1)
             {
                 scores = new List<int>(Enumerable.Repeat(0, client.NumPlayers()));
-                ready = true;
                 _id = s.Id;
-
+                
                 for (int i = 0; i < client.NumPlayers(); i++)
                 {
                     PictureBox pacman = new PictureBox();
@@ -82,12 +70,26 @@ namespace pacman {
                 
             }
             else {
+                
                 Killpacmans(s);
                 DrawBoardPacmans(s);
+                RemoveCoins(s);
+                IncreaseScore(s);
                 MoveGhost(s);
-
+                EndGame(s);
             }
             sendMessage = true;
+        }
+
+        public void EndGame(State s)
+        {
+            if (s.GameRunning == false)
+            {   
+                label2.Text = "PLAYER" + s.Winner + " WON!";                
+                label2.Visible = true;
+                label2.Refresh();
+                timer1.Stop();
+            }
         }
 
         public void MoveGhost(State s)
@@ -186,27 +188,45 @@ namespace pacman {
                 }
             }
         }
+
+        private void RemoveCoins(State s)
+        {
+            int i = 0;
+            foreach(bool coin in s.CoinsEaten)
+            {
+                if (coin == false)
+                {
+                    foreach(Control moeda in this.Controls)
+                    {
+                        if(moeda is PictureBox && moeda.Tag.Equals("coin" + i.ToString()))
+                        {
+                            this.Controls.Remove(moeda);
+                        }
+                    }
+                }
+                i++;
+            }
+        }
+
+        private void IncreaseScore(State s)
+        {
+            score = s.Score[_id];
+        }
         
         private void timer1_Tick(object sender, EventArgs e)
         {
             
             label1.Text = "Score: " + score;
-            
+
             if (sendMessage)
             {
-                
                 newState.Id = _id;
                 newState.Key = GetKeyInput();
 
                 client.SendStateServer(newState);
                 sendMessage=false;
             }
-
-            keypressed = "";
-            
-
-
-            if (ready)
+            /*if (ready)
             {
                 foreach (Control x in this.Controls)
                 {
@@ -215,7 +235,7 @@ namespace pacman {
                         label2.Text = "GAME OVER";
                         label2.Visible = true;
                         timer1.Stop();
-                    }*/
+                    }
                     if (x is PictureBox && x.Tag == "pacman")
                     {
                         /*if (((PictureBox)x).Bounds.IntersectsWith(redGhost.Bounds) ||//ghosts:
@@ -230,14 +250,14 @@ namespace pacman {
                             dead++;
                             x.Tag = "dead";
                             Debug.WriteLine("pacman" + pacmans[0].Bounds);
-                        }*/
+                        }
                         foreach (Control y in this.Controls)
                         {
                             if (y is PictureBox && y.Tag == "coin")
                             {
                                 if (((PictureBox)x).Bounds.IntersectsWith(((PictureBox)y).Bounds))
                                 {
-                                    this.Controls.Remove(y);
+                                    //this.Controls.Remove(y);
                                     score++;
                                     int i = (int)Char.GetNumericValue(x.Name[6]);
                                     scores.Insert(i,scores[i]++);
@@ -254,7 +274,7 @@ namespace pacman {
                         }
                     }
                 }
-            }
+            }*/
             
         }
 
