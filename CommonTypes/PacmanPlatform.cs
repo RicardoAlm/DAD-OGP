@@ -21,7 +21,10 @@ namespace pacman
         private int _players;
         private readonly State _board;
         private bool _gameStart;
-
+        private bool movementRed;
+        private bool movementYellow;
+        private bool movementPinkX;
+        private bool movementPinkY;
 
         public PacmanServerObject()
         {
@@ -35,7 +38,11 @@ namespace pacman
             _board.CoordY = new List<int>();
             _board.GhostX = new List<int>();
             _board.GhostY = new List<int>();
-            _board.GhostInvert = new List<bool>();
+            _board.Alive = new List<bool>();
+            movementRed = true;
+            movementYellow = true;
+            movementPinkX = true;
+            movementPinkY = true;
         }
 
         public void Register(string nick, string url)
@@ -78,7 +85,7 @@ namespace pacman
                 foreach(string clientNick in _clients.Keys)
                 {
                     _board.Id = id;
-                    //_board.Alive = true;
+                    _board.Alive.Insert(id,true);
                     _board.CoordX.Insert(id, 8);
                     _board.CoordY.Insert(id, (id + 1) * 40);
                     _clients[clientNick].GetServerClients(clientNick, _urls, id);
@@ -91,10 +98,6 @@ namespace pacman
                 _board.GhostY.Insert(1,273);
                 _board.GhostX.Insert(2,301);
                 _board.GhostY.Insert(2,72);
-                for (int i = 0; i < 4; i++)
-                {
-                    _board.GhostInvert.Insert(i,true);
-                }
                 
             }).Start();
         }
@@ -128,6 +131,153 @@ namespace pacman
             }).Start();
         }
 
+        public bool Walls_collision_pacman(int x,int y)
+        {
+            //wall1 x=88 Y=40 w15 h95
+            //wall2 x=248 y=40 w15 h95
+            //wall3 x=128 y=240 w15 h95
+            //wall4 x=288 y=240 w15 h95
+            //redghost x=180 y=73 w30 h30
+            //yellowghost x=221 y=273 w30 h30
+            //pinkghost x=301,y=72 w30 h30
+            //pacman x=8 Y=40 w25 h25
+            //-25 + 15
+            //hit first wall
+            if (x > 63 & x < 103 & y < 135)
+            {
+                return true;
+            }
+
+            //hit second wall
+            if (x > 223 & x < 263 & y < 135)
+            {
+                return true;
+            }
+
+            //hit third wall
+            if (x > 103 & x < 143 & y > 215)
+            {
+                return true;
+            }
+
+            //hit fourth wall
+            if (x > 263 & x < 303 & y < 215)
+            {
+                return true;
+            }            
+            return false;
+        }
+
+        public bool Ghosts_collision_pacman(int x, int y)
+        {            
+            //hit redGhost
+            if (x > _board.GhostX[0] - 25 & x < _board.GhostX[0] + 30 & y < _board.GhostY[0] + 30 & y > _board.GhostY[0])
+            {
+                return true;
+            }
+
+            //hit yellowGhost
+            if (x > _board.GhostX[1] - 25 & x < _board.GhostX[1] + 30 & y < _board.GhostY[1] + 30 & y > _board.GhostY[1])
+            {
+                return true;
+            }
+
+            //hit pinkGhost
+            if (x > _board.GhostX[2] - 25 & x < _board.GhostX[2] + 30 & y < _board.GhostY[2] + 30 & y > _board.GhostY[2])
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public bool Walls_collision_redghost(int x)
+        {            
+            //hit first wall
+            if (x < 103)
+            {
+                movementRed=true;
+            }
+
+            //hit second wall
+            if (x > 218)
+            {
+                movementRed=false;                
+            }
+            return movementRed;
+        }
+
+        public bool Walls_collision_yellowghost(int x)
+        {            
+            //hit third wall
+            if (x < 143)
+            {
+                movementYellow = true;
+            }
+
+            //hit fourth wall
+            if (x > 258)
+            {
+                movementYellow = false;
+            }
+            return movementYellow;
+        }
+        
+        public bool Walls_collision_pinkghostX(int x, int y)
+        {
+            int boardRight = 320;
+            int boardLeft = 0;
+            
+            if (x > boardRight )//- 15)
+            {
+                movementPinkX = !movementPinkX;
+            }
+            if (x < boardLeft + 15)
+            {
+                movementPinkX = !movementPinkX;
+            }
+
+            //hit first wall
+            if (x > 58 & x < 103 & y < 135)
+            {
+                movementPinkX = !movementPinkX;
+            }
+
+            //hit second wall
+            if (x > 218 & x < 263 & y < 135)
+            {
+                movementPinkX = !movementPinkX;
+            }
+
+            //hit third wall
+            if (x > 98 & x < 143 & y > 210)
+            {
+                movementPinkX = !movementPinkX;
+            }
+
+            //hit fourth wall
+            if (x > 258 & x < 303 & y > 210)
+            {
+                movementPinkX = !movementPinkX;
+            }
+            return movementPinkX;
+        }
+
+        public bool Walls_collision_pinkghostY(int y)
+        {
+            int boardTop = 40;
+            int boardBottom = 320;
+           
+            if (y < boardTop)
+            {
+                movementPinkY = !movementPinkY;
+            }
+            if (y + 30 > boardBottom - 2)
+            {
+                movementPinkY = !movementPinkY;
+            }
+            return movementPinkY;
+        }
+
         public void IncrementePosition()
         {
             int speed = 5;
@@ -139,61 +289,77 @@ namespace pacman
             {
                 // Debug.WriteLine("iD:" + s.Id + "Key:" + s.Key);
                 // Debug.WriteLine("BoardCount:"+_board.CoordY.Count);
+
+                //checking first and after cause ghost can hit player too
+                if (Ghosts_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]))
+                {
+                    _board.Alive[s.Id] = false;
+                }
+
+
+                if (_board.Alive[s.Id] == true)
+                {
+                    if (s.Key.Equals("up"))
+                    {
+                        if (!(_board.CoordY[s.Id] - speed < boardTop)) { _board.CoordY[s.Id] -= speed; }
+                    }
+                    if (s.Key.Equals("down"))
+                    {
+                        if (!(_board.CoordY[s.Id] + speed > boardBottom)) { _board.CoordY[s.Id] += speed; }
+                    }
+                    if (s.Key.Equals("left"))
+                    {
+                        if (!(_board.CoordX[s.Id] - speed < boardLeft)) { _board.CoordX[s.Id] -= speed; }
+
+                    }
+                    if (s.Key.Equals("right"))
+                    {
+                        if (!(_board.CoordX[s.Id] + speed > boardRight)) { _board.CoordX[s.Id] += speed; }
+
+                    }
+                    if (s.Key.Equals("")) { }
+
+                    //check if hits wall and ghost if does kill it
+                    if (Walls_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]) || Ghosts_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]))
+                    {
+                        _board.Alive[s.Id] = false;
+                    }
+                }
+
                 
-                if (s.Key.Equals("up"))
-                {
-                    if(!(_board.CoordY[s.Id] - speed < boardTop)) { _board.CoordY[s.Id] -= speed; }
-                }
-                if (s.Key.Equals("down"))
-                {
-                    if (!(_board.CoordY[s.Id] + speed > boardBottom)) { _board.CoordY[s.Id] += speed; }
-                }
-                if (s.Key.Equals("left"))
-                {
-                    if (!(_board.CoordX[s.Id] - speed < boardLeft))  { _board.CoordX[s.Id] -= speed; }
-                   
-                }
-                if (s.Key.Equals("right"))
-                {
-                    if (!(_board.CoordX[s.Id] + speed > boardRight)) { _board.CoordX[s.Id] += speed; }
-                   
-                }
-                if (s.Key.Equals("")) { }
-                for (int i = 0; i < 4; i++)
-                {
-                    _board.GhostInvert[i] = s.GhostInvert[i];
-                }
-                
-            }
-            if (_board.GhostInvert[0])
+            //////////////GHOSTS//////////////    
+            }//redghost
+            if (Walls_collision_redghost(_board.GhostX[0]))
             {
-                _board.GhostX[0] = _board.GhostX[0] + 5;
-            }else
-            {
-                _board.GhostX[0] = _board.GhostX[0] - 5;
-            }
-            if (_board.GhostInvert[1])
-            {
-                _board.GhostX[1] = _board.GhostX[1] + 5;
-            }else
-            {
-                _board.GhostX[1] = _board.GhostX[1] - 5;
-            }
-            if (_board.GhostInvert[2])
-            {
-                _board.GhostX[2] = _board.GhostX[2] + 5;
+                _board.GhostX[0] = _board.GhostX[0] + speed;                
             }
             else
             {
-                _board.GhostX[2] = _board.GhostX[2] - 5;
-            }
-            if (_board.GhostInvert[3])
+                _board.GhostX[0] = _board.GhostX[0] - speed;
+            }//yellowghost
+            if (Walls_collision_yellowghost(_board.GhostX[1]))
             {
-                _board.GhostY[2] = _board.GhostY[2] + 5;
+                _board.GhostX[1] = _board.GhostX[1] + speed;
+            }else
+            {
+                _board.GhostX[1] = _board.GhostX[1] - speed;
+            }
+            //pinkghostX
+            if (Walls_collision_pinkghostX(_board.GhostX[2], _board.GhostY[2]))
+            {
+                _board.GhostX[2] = _board.GhostX[2] + speed;
             }
             else
             {
-                _board.GhostY[2] = _board.GhostY[2] - 5;
+                _board.GhostX[2] = _board.GhostX[2] - speed;
+            }//pinkghostY
+            if (Walls_collision_pinkghostY(_board.GhostY[2]))
+            {
+                _board.GhostY[2] = _board.GhostY[2] + speed;
+            }
+            else
+            {
+                _board.GhostY[2] = _board.GhostY[2] - speed;
             }
 
             _board.Round++;
@@ -377,17 +543,16 @@ namespace pacman
     public class State
     {
 
-        public State(){}
+        public State() { }
 
-        public int Id { get ; set; }
+        public int Id { get; set; }
         public int Round { get; set; }
         public List<int> CoordX { get; set; }
         public List<int> CoordY { get; set; }
         public List<int> GhostX { get; set; }
         public List<int> GhostY { get; set; }
-        public List<bool> GhostInvert { get; set; }
         public string Key { get; set; }
-        //public bool Alive { get; set; }
+        public List<bool> Alive { get; set; }
     }
 
 }

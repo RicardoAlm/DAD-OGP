@@ -38,13 +38,6 @@ namespace pacman {
 
         int score = 0; int total_coins = 61;
         List<int> scores;
-        //ghost speed for the one direction ghosts
-        int ghost1 = 5;
-        int ghost2 = 5;
-        
-        //x and y directions for the bi-direccional pink ghost
-        int ghost3x = 5;
-        int ghost3y = 5;
 
 
         Client client = null;
@@ -59,7 +52,6 @@ namespace pacman {
             label2.Visible = false;
             _id = 0;
             newState = new State();
-            newState.GhostInvert = new List<bool>();
         }
 
         public void Redraw(State s)
@@ -70,7 +62,6 @@ namespace pacman {
                 ready = true;
                 _id = s.Id;
 
-                
                 for (int i = 0; i < client.NumPlayers(); i++)
                 {
                     PictureBox pacman = new PictureBox();
@@ -86,13 +77,12 @@ namespace pacman {
                     pacman.TabStop = false;
                     this.Controls.Add(pacman);
                     pacmans.Insert(i, pacman);
+                    
                 }
-                for (int i = 0; i < 4; i++)
-                {
-                    newState.GhostInvert.Insert(i,s.GhostInvert[i]);
-                }
+                
             }
             else {
+                Killpacmans(s);
                 DrawBoardPacmans(s);
                 MoveGhost(s);
 
@@ -102,6 +92,7 @@ namespace pacman {
 
         public void MoveGhost(State s)
         {
+            
             redGhost.Location = new System.Drawing.Point(s.GhostX[0], s.GhostY[0]);
             yellowGhost.Location = new System.Drawing.Point(s.GhostX[1], s.GhostY[1]);
             pinkGhost.Location = new System.Drawing.Point(s.GhostX[2], s.GhostY[2]);
@@ -174,15 +165,28 @@ namespace pacman {
             {
                 PictureBox pacman = pacmans[i];
                 pacman.Location = new System.Drawing.Point(s.CoordX[i], s.CoordY[i]);
-                this.Controls.Add(pacman);
+                //this.Controls.Add(pacman);
             }           
         }
 
-
-
-
-
-
+        private void Killpacmans(State s)
+        {
+            if (!s.Alive[_id])
+            {
+                label2.Text = "GAME OVER";
+                label2.Visible = true;
+                timer1.Stop();
+                
+            }
+            for (int i = 0; i < client.NumPlayers(); i++)
+            {
+                if (!s.Alive[i])
+                {
+                    pacmans[i].Visible = false;
+                }
+            }
+        }
+        
         private void timer1_Tick(object sender, EventArgs e)
         {
             
@@ -194,42 +198,6 @@ namespace pacman {
                 newState.Id = _id;
                 newState.Key = GetKeyInput();
 
-                //check if phantoms hit wall////////////////////////////////////////////////////////
-                if (redGhost.Bounds.IntersectsWith(pictureBox1.Bounds))
-                {
-                    newState.GhostInvert[0] = true;
-                }
-                else if (redGhost.Bounds.IntersectsWith(pictureBox2.Bounds))
-                {
-                    newState.GhostInvert[0] = false;
-                }
-                if (yellowGhost.Bounds.IntersectsWith(pictureBox3.Bounds))
-                {
-                    newState.GhostInvert[1] = true;
-                }
-
-                else if (yellowGhost.Bounds.IntersectsWith(pictureBox4.Bounds))
-                {
-                    newState.GhostInvert[1] = false;
-                }
-
-                if (pinkGhost.Left < boardLeft ||
-                        pinkGhost.Left > boardRight ||
-                        (pinkGhost.Bounds.IntersectsWith(pictureBox1.Bounds)) ||
-                        (pinkGhost.Bounds.IntersectsWith(pictureBox2.Bounds)) ||
-                        (pinkGhost.Bounds.IntersectsWith(pictureBox3.Bounds)) ||
-                        (pinkGhost.Bounds.IntersectsWith(pictureBox4.Bounds)))
-                {
-                    newState.GhostInvert[2] = !newState.GhostInvert[2];
-                    //ghost3x = -ghost3x;
-                }
-                if (pinkGhost.Top < boardTop || pinkGhost.Top + pinkGhost.Height > boardBottom - 2)
-                {                    
-                    newState.GhostInvert[3] = !newState.GhostInvert[3];
-                    //ghost3y = -ghost3y;
-                }
-                ///////////////////////////////////////////////////////////////////////////////////
-
                 client.SendStateServer(newState);
                 sendMessage=false;
             }
@@ -240,36 +208,17 @@ namespace pacman {
 
             if (ready)
             {
-
-                
-
-                /*redGhost.Left += ghost1;
-                yellowGhost.Left += ghost2;
-                // if the red ghost hits the picture box 4 then wereverse the speed
-                if (redGhost.Bounds.IntersectsWith(pictureBox1.Bounds))
-                    ghost1 = -ghost1;
-                // if the red ghost hits the picture box 3 we reverse the speed
-                else if (redGhost.Bounds.IntersectsWith(pictureBox2.Bounds))
-                    ghost1 = -ghost1;
-                // if the yellow ghost hits the picture box 1 then wereverse the speed
-                if (yellowGhost.Bounds.IntersectsWith(pictureBox3.Bounds))
-                    ghost2 = -ghost2;
-                // if the yellow chost hits the picture box 2 then wereverse the speed
-                else if (yellowGhost.Bounds.IntersectsWith(pictureBox4.Bounds))
-                    ghost2 = -ghost2;
-                //moving ghosts and bumping with the walls end
-                //for loop to check walls, ghosts and points*/
                 foreach (Control x in this.Controls)
                 {
-                    if (x is PictureBox && x.Tag == "dead" && dead == client.NumPlayers())
+                    /*if (x is PictureBox && x.Tag == "dead" && dead == client.NumPlayers())
                     {
                         label2.Text = "GAME OVER";
                         label2.Visible = true;
                         timer1.Stop();
-                    }
+                    }*/
                     if (x is PictureBox && x.Tag == "pacman")
                     {
-                        if (((PictureBox)x).Bounds.IntersectsWith(redGhost.Bounds) ||//ghosts:
+                        /*if (((PictureBox)x).Bounds.IntersectsWith(redGhost.Bounds) ||//ghosts:
                             ((PictureBox)x).Bounds.IntersectsWith(pinkGhost.Bounds) ||
                              ((PictureBox)x).Bounds.IntersectsWith(yellowGhost.Bounds) ||
                               ((PictureBox)x).Bounds.IntersectsWith(pictureBox1.Bounds) || //walls:
@@ -280,7 +229,8 @@ namespace pacman {
                             x.Visible = false;
                             dead++;
                             x.Tag = "dead";
-                        }
+                            Debug.WriteLine("pacman" + pacmans[0].Bounds);
+                        }*/
                         foreach (Control y in this.Controls)
                         {
                             if (y is PictureBox && y.Tag == "coin")
@@ -304,24 +254,6 @@ namespace pacman {
                         }
                     }
                 }
-                /*
-                pinkGhost.Left += ghost3x;
-                pinkGhost.Top += ghost3y;
-
-                if (pinkGhost.Left < boardLeft ||
-                    pinkGhost.Left > boardRight ||
-                    (pinkGhost.Bounds.IntersectsWith(pictureBox1.Bounds)) ||
-                    (pinkGhost.Bounds.IntersectsWith(pictureBox2.Bounds)) ||
-                    (pinkGhost.Bounds.IntersectsWith(pictureBox3.Bounds)) ||
-                    (pinkGhost.Bounds.IntersectsWith(pictureBox4.Bounds)))
-                {
-                    ghost3x = -ghost3x;
-                }
-                if (pinkGhost.Top < boardTop || pinkGhost.Top + pinkGhost.Height > boardBottom - 2)
-                {
-                    ghost3y = -ghost3y;
-                }
-                */
             }
             
         }
