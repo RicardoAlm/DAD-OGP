@@ -19,7 +19,7 @@ namespace pacman
     {
         private TcpChannel channel = null;
         private IPacmanPlatform server;
-        private PacmanClientObject client;
+        private ClientObject client;
         private int port;
         private int player;
 
@@ -45,11 +45,11 @@ namespace pacman
                 ChannelServices.RegisterChannel(channel, true);
                 server = (IPacmanPlatform)Activator.GetObject(
                     typeof(IPacmanPlatform),
-                    "tcp://localhost:8086/PacmanServerObject");
+                    "tcp://localhost:8086/ServerObject");
 
-                client = new PacmanClientObject(f, d, p);
-                RemotingServices.Marshal(client, "PacmanClientObject",
-                    typeof(PacmanClientObject));
+                client = new ClientObject(f, d, p);
+                RemotingServices.Marshal(client, "ClientObject",
+                    typeof(ClientObject));
 
                 if (server == null)
                 {
@@ -57,7 +57,7 @@ namespace pacman
                 }
                 else
                 {
-                    server.Register(port.ToString(), "tcp://localhost:" + port + "/PacmanClientObject");
+                    server.Register(port.ToString(), "tcp://localhost:" + port + "/ClientObject");
                 }
             }
         }

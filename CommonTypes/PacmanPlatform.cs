@@ -10,14 +10,14 @@ using System.Runtime.Serialization.Formatters;
 
 namespace pacman
 {
-    public class PacmanServerObject : MarshalByRefObject, IPacmanPlatform
+    public class ServerObject : MarshalByRefObject, IPacmanPlatform
     {
 
         private int MSEC_PER_ROUND = 50;
         private int MAX_PLAYERS;
         private readonly List<string> _urls;
         private readonly List<State> _queueStates;
-        private readonly Dictionary<string, PacmanClientObject> _clients;
+        private readonly Dictionary<string, ClientObject> _clients;
         private int _players;
         private readonly State _board;
         private bool _gameStart;
@@ -26,11 +26,11 @@ namespace pacman
         private bool movementPinkX;
         private bool movementPinkY;
 
-        public PacmanServerObject()
+        public ServerObject()
         {
             _gameStart = false;
             _queueStates = new List<State>();
-            _clients = new Dictionary<string, PacmanClientObject>();
+            _clients = new Dictionary<string, ClientObject>();
             _urls = new List<string>();
             _players = 0;
             _board = new State();
@@ -54,8 +54,8 @@ namespace pacman
             if (!_clients.ContainsKey(nick))
             {
                 Debug.WriteLine("Client name available");
-                PacmanClientObject remoteObj = (PacmanClientObject)Activator.GetObject(
-                    typeof(PacmanClientObject),
+                ClientObject remoteObj = (ClientObject)Activator.GetObject(
+                    typeof(ClientObject),
                     url);
                 if (remoteObj == null)
                     System.Console.WriteLine("Could not locate server");
@@ -128,7 +128,7 @@ namespace pacman
                         GameFinish();
                         IncrementePosition();
                         _queueStates.Clear();
-                        foreach (PacmanClientObject c in _clients.Values)
+                        foreach (ClientObject c in _clients.Values)
                         {
                             c.SendState(_board);
                             c.MoveTheGame();
@@ -455,7 +455,7 @@ namespace pacman
     }
 
 
-    public class PacmanClientObject : MarshalByRefObject
+    public class ClientObject : MarshalByRefObject
     {
         readonly Form _form;
         readonly Delegate _displaydelegate;
@@ -463,17 +463,17 @@ namespace pacman
         private int _id;
         private bool _gameReady;
         private List<int> _msgSeqVector;
-        private readonly List <PacmanClientObject> _clients;
+        private readonly List <ClientObject> _clients;
         private readonly Dictionary<Dictionary <List<int>, string>, int> _messageQueue;
 
 
 
-        public PacmanClientObject(Form form, Delegate d, Delegate p)
+        public ClientObject(Form form, Delegate d, Delegate p)
         {
             _form = form;
             _displaydelegate = d;
             _drawpDelegate = p;
-            _clients = new List<PacmanClientObject>();
+            _clients = new List<ClientObject>();
             _messageQueue = new Dictionary<Dictionary<List<int>, string>, int>();
             _gameReady = false;
         }
@@ -489,8 +489,8 @@ namespace pacman
                 _msgSeqVector.Insert(i,0);
                 if (i != id)
                 {
-                    PacmanClientObject remoteObj = (PacmanClientObject)Activator.GetObject(
-                        typeof(PacmanClientObject),
+                    ClientObject remoteObj = (ClientObject)Activator.GetObject(
+                        typeof(ClientObject),
                         urls[i]);
                     _clients.Add(remoteObj);
                 }
@@ -615,7 +615,7 @@ namespace pacman
         {
             new Thread(() =>
             {
-                foreach (PacmanClientObject c in _clients)
+                foreach (ClientObject c in _clients)
                 {
                     _msgSeqVector[_id]++;
                     c.DisplayMessage(msg, _msgSeqVector, _id);
