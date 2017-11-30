@@ -644,4 +644,26 @@ namespace pacman
         public List<bool> CoinsEaten { get; set; }
     }
 
+    public class PcsRemote: MarshalByRefObject
+    {
+        private Process _process;
+
+        public PcsRemote() { }
+
+        public void LaunchServer()
+        {
+            _process = Process.Start("C:\\Users\\jp_s\\Documents\\Dad\\DAD-OGP\\Server\\bin\\Debug\\Server.exe");
+        }
+        public void LaunchClient()
+        {
+            _process = Process.Start("C:\\Users\\jp_s\\Documents\\Dad\\DAD-OGP\\pacman\\bin\\Debug\\pacman.exe");
+        }
+
+        public void KillProcess()
+        {
+            _process.Kill();
+        }
+
+    }
+
 }

@@ -1,14 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Net.Sockets;
+using System.Runtime.Remoting;
+using System.Runtime.Remoting.Channels;
+using System.Runtime.Remoting.Channels.Tcp;
 using System.Text;
 using System.Threading.Tasks;
+using pacman;
 
 namespace PuppetMaster
 {
     class PuppetMaster
     {
-        public PuppetMaster() { }
+        private ServerObject _server;
+        private Dictionary<string, ClientObject> _clients = new Dictionary<string, ClientObject>();
+        private Dictionary<string, PcsRemote> _kill = new Dictionary<string, PcsRemote>();
+
+        public PuppetMaster()
+        {
+        }
 
         public void Execute(string s)
         {
@@ -34,15 +46,58 @@ namespace PuppetMaster
 
         public void StartServer(string pid, string pcsUrl, string serverUrl, int msecPerRound, int numPlayer)
         {
-            Console.WriteLine("ServerMagic");
+            ConnectPcsServer(pcsUrl, pid);
+            _server = (ServerObject)Activator.GetObject(
+                typeof(ServerObject),
+                serverUrl);
         }
 
         public void StartClient(string pid, string pcsUrl, string clientUrl, int msecPerRound, int numPlayer,
             string fileName)
         {
-            
+            ConnectPcsClient(pcsUrl, pid);
+            _clients.Add(pid, (ClientObject)Activator.GetObject(
+                typeof(ClientObject),
+                clientUrl));
         }
 
+        public void ConnectPcsServer(string url, string id)
+        {
+            PcsRemote serverPcs = (PcsRemote) Activator.GetObject(
+                typeof(PcsRemote),
+                url);
+            if (serverPcs == null)
+            {
+                throw new SocketException();
+            }
+            else
+            {
+                _kill.Add(id,serverPcs);
+                serverPcs.LaunchServer();
+            }
+        }
+        public void ConnectPcsClient(string url, string id)
+        {
+            PcsRemote clientPcs = (PcsRemote)Activator.GetObject(
+                typeof(PcsRemote),
+                url);
+            if (clientPcs == null)
+            {
+                throw new SocketException();
+            }
+            else
+            {
+                _kill.Add(id, clientPcs);
+                clientPcs.LaunchClient();
+            }
+        }
 
+        public void KillAllProcess()
+        {
+            foreach (PcsRemote pcs in _kill.Values)
+            {
+                pcs.KillProcess();
+            }
+        }
     }
 }

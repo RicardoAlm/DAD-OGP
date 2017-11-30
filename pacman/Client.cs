@@ -41,7 +41,7 @@ namespace pacman
 
             if (CheckAvailableServerPort(port))
             { 
-                channel = new TcpChannel(port);
+                channel = new TcpChannel(30001);
                 ChannelServices.RegisterChannel(channel, true);
                 server = (IPacmanPlatform)Activator.GetObject(
                     typeof(IPacmanPlatform),

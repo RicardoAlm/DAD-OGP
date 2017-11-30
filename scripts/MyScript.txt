@@ -1,0 +1,1 @@
+StartServer S1 tcp://localhost:11000/PCS tcp://localhost:20001/Server 20 6

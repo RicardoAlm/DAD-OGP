@@ -1,4 +1,4 @@
-StartServer S1 tcp://1.2.3.4:11000/PCS tcp://1.2.3.4:20001/Server 20 6
+StartServer S1 tcp://localhost:11000/PCS tcp://1.2.3.4:20001/Server 20 6
 StartClient C1 tcp://1.2.3.4:11000/PCS tcp://1.2.3.4:30001/Client 20 6
 StartClient C2 tcp://1.2.3.4:11000/PCS tcp://1.2.3.4:30002/Client 20 6
 StartClient C3 tcp://1.2.3.4:11000/PCS tcp://1.2.3.4:30003/Client 20 6
