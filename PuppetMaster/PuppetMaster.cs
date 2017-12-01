@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
+using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
 using pacman;
@@ -15,7 +16,7 @@ namespace PuppetMaster
     class PuppetMaster
     {
         private Tuple<string, ServerObject> _server;
-        private Dictionary<string, ClientObject> _clients = new Dictionary<string, ClientObject>();
+        private readonly Dictionary<string, ClientObject> _clients = new Dictionary<string, ClientObject>();
         private readonly Dictionary<string, PcsRemote> _kill = new Dictionary<string, PcsRemote>();
 
         public void Execute(string s)
@@ -38,6 +39,8 @@ namespace PuppetMaster
                         Int32.Parse(function[5]), function[7]);
                 }
             }
+            else if (function[0].Equals("LocalState"))
+                LocalState(function[1], Int32.Parse(function[2]));
         }
 
         public void StartServer(string pid, string pcsUrl, string serverUrl, int msecPerRound, int numPlayer)
@@ -46,7 +49,7 @@ namespace PuppetMaster
             ConnectPcsServer(pcsUrl, pid, url);
             _server = Tuple.Create(url, (ServerObject) Activator.GetObject(
                 typeof(ServerObject),
-                serverUrl));
+                serverUrl+"Object"));
             try
             {
                 _server.Item2.SetMaxplayers(numPlayer);
@@ -57,11 +60,11 @@ namespace PuppetMaster
         public void StartClient(string pid, string pcsUrl, string clientUrl, int msecPerRound, int numPlayer,
             string fileName)
         {
-            Debug.WriteLine(pid);
+            Debug.WriteLine("StartClientPID:" + pid);
             ConnectPcsClient(pcsUrl, pid, _server.Item1, GetPort(clientUrl));
             _clients.Add(pid, (ClientObject)Activator.GetObject(
                 typeof(ClientObject),
-                clientUrl));
+                clientUrl+"Object"));
         }
 
         public void ConnectPcsServer(string url, string id, string port)
@@ -93,6 +96,13 @@ namespace PuppetMaster
                 _kill.Add(id, clientPcs);
                 clientPcs.LaunchClient(portServer, portClient);
             }
+        }
+
+        public void LocalState(string pid, int round)
+        {
+            string localState = _clients[pid].LocalState(round);
+            Console.WriteLine(localState);
+            System.IO.File.WriteAllText(@"C:\Users\jp_s\Documents\Dad\DAD-OGP\PuppetMaster\bin\Debug\LocalState" + pid + "_" + round+".txt",localState);
         }
 
         public string GetPort(string s)

@@ -16,15 +16,7 @@ namespace pacman
 
         public Server(int port)
         {
-            TcpChannel channel;
-            if (port == 0)
-            {
-               channel = new TcpChannel(8086);
-            }
-            else
-            {
-                channel = new TcpChannel(port);
-            }
+            TcpChannel channel = port == 0 ? new TcpChannel(8086) : new TcpChannel(port);
             Debug.WriteLine("Starting Server...");
             ChannelServices.RegisterChannel(channel, false);
 

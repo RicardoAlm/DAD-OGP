@@ -34,6 +34,8 @@ namespace pacman {
         public delegate void ReDrawPacman(State s);
         State newState;
 
+
+
         public Form1(int portServer, int portClient) {
             InitializeComponent();
             client = new Client(this, new UpdateChat(this.ChangeChat), new ReDrawPacman(this.Redraw), portServer, portClient);
@@ -126,20 +128,15 @@ namespace pacman {
         private void keyisdown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Left) {
                 goleft = true;
-                //pacman.Image = Properties.Resources.Left;
             }
             if (e.KeyCode == Keys.Right) {
                 goright = true;
-                //pacman.Image = Properties.Resources.Right;
             }
             if (e.KeyCode == Keys.Up) {
                 goup = true;
-                //pacman.Image = Properties.Resources.Up;
             }
             if (e.KeyCode == Keys.Down) {
                 godown = true;
-                //pacman.Image = Properties.Resources.down;
-                //DrawPacmans(); //here
             }
             if (e.KeyCode == Keys.Enter) {
                     tbMsg.Enabled = true; tbMsg.Focus();

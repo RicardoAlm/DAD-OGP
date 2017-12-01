@@ -459,7 +459,7 @@ namespace pacman
         private List<int> _msgSeqVector;
         private readonly List <ClientObject> _clients;
         private readonly Dictionary<Dictionary <List<int>, string>, int> _messageQueue;
-
+        private readonly Dictionary<int, State> _allRoundsStates;
 
 
         public ClientObject(Form form, Delegate d, Delegate p)
@@ -470,6 +470,7 @@ namespace pacman
             _clients = new List<ClientObject>();
             _messageQueue = new Dictionary<Dictionary<List<int>, string>, int>();
             _gameReady = false;
+            _allRoundsStates = new Dictionary<int, State>();
         }
 
         //---------------------Server Side-----------------------------------------------
@@ -497,6 +498,7 @@ namespace pacman
 
         public void SendState(State s)
         {
+            _allRoundsStates.Add(s.Round,s);
             s.Id = _id;
             _form.Invoke(_drawpDelegate, new object[] { s });
         }
@@ -509,6 +511,43 @@ namespace pacman
         public bool IsGameReady()
         {
             return _gameReady;
+        }
+
+        public string LocalState(int round)
+        {
+            while(!_allRoundsStates.ContainsKey(round))
+            {
+                Thread.Sleep(100); 
+            }
+            State s = _allRoundsStates[round];
+            string localstate = "";
+            for (int i = 0; i < s.GhostX.Count; i++)
+            {
+                localstate += "M, " + s.GhostX[i] + ", " + s.GhostY[i] + "\r\n";
+            }
+
+            for (int i = 0; i < s.CoordX.Count; i++)
+            {
+                if(s.Alive[i])
+                    localstate += "P"+ i + ", P " + s.CoordX[i] + ", " + s.CoordY[i] + "\r\n";
+                else
+                    localstate += "P" + i + ", L " + s.CoordX[i] + ", " + s.CoordY[i] + "\r\n";
+            }
+
+            int coinX = 40;
+            int coinY = 40;
+            for (int i = 0; i < 9; i++)
+            {
+                for (int j = 0; j < 9; j++)
+                {
+                    if (s.CoinsEaten[i])
+                        localstate += "C, " + coinX + ", " + coinY + "\r\n";
+                    coinY += 40;
+                }
+                coinY = 40;
+                coinX += 40;
+            }
+            return localstate;
         }
 
 
