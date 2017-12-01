@@ -14,33 +14,25 @@ namespace pacman
     {
         private readonly ServerObject server;
 
-        public Server()
-        {
-            Debug.WriteLine("Starting Server...");
-            TcpChannel channel = new TcpChannel(8086);
-            ChannelServices.RegisterChannel(channel, true);
-
-            server = new ServerObject();
-            RemotingServices.Marshal(server, "ServerObject",
-                typeof(ServerObject));
-
-            Debug.WriteLine("Server Up");
-
-            server.WaitForClientsInput();
-        }
-
         public Server(int port)
         {
+            TcpChannel channel;
+            if (port == 0)
+            {
+               channel = new TcpChannel(8086);
+            }
+            else
+            {
+                channel = new TcpChannel(port);
+            }
             Debug.WriteLine("Starting Server...");
-            TcpChannel channel = new TcpChannel(port);
-            ChannelServices.RegisterChannel(channel, true);
+            ChannelServices.RegisterChannel(channel, false);
 
             server = new ServerObject();
             RemotingServices.Marshal(server, "ServerObject",
                 typeof(ServerObject));
 
             Debug.WriteLine("Server Up");
-
             server.WaitForClientsInput();
         }
 

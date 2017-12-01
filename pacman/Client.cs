@@ -20,46 +20,44 @@ namespace pacman
         private TcpChannel channel = null;
         private IPacmanPlatform server;
         private ClientObject client;
-        private int port;
-        private int player;
+        public int player { get; private set; }
+        public delegate void getID(State s);
 
-        public Client(Form1 form, Delegate d, Delegate p)
+        public Client(Form1 form, Delegate d, Delegate p, int portServer, int portClient)
         {
             Debug.WriteLine("Connecting to server...");
-            ConnectToServer(form, d, p);
+            ConnectToServer(form, d, p, portServer, portClient);
             Debug.WriteLine("Connected to server");
-            /* Debug.WriteLine("Updating Clients list...");
-             server.GetClients(port.ToString());
-             Debug.WriteLine("Clients list Updated");*/
-            //form.
         }
 
-        public void ConnectToServer(Form f, Delegate d, Delegate p)
+        public void ConnectToServer(Form f, Delegate d, Delegate p, int portServer, int portClient)
         {
-            Random rnd = new Random();
-            port = rnd.Next(49152, 65535);
+            if (portClient == 0)
+            {
+                Random rnd = new Random();
+                portClient = rnd.Next(49152, 65535);
 
-            if (CheckAvailableServerPort(port))
-            { 
-                channel = new TcpChannel(30001);
-                ChannelServices.RegisterChannel(channel, true);
-                server = (IPacmanPlatform)Activator.GetObject(
-                    typeof(IPacmanPlatform),
-                    "tcp://localhost:8086/ServerObject");
-
-                client = new ClientObject(f, d, p);
-                RemotingServices.Marshal(client, "ClientObject",
-                    typeof(ClientObject));
-
-                if (server == null)
+                if (!CheckAvailableServerPort(portClient))
                 {
-                    throw new SocketException();
-                }
-                else
-                {
-                    server.Register(port.ToString(), "tcp://localhost:" + port + "/ClientObject");
+                    //TODO -> throw new Exception
                 }
             }
+            client = new ClientObject(f, d, p);
+            channel = new TcpChannel(portClient);
+            ChannelServices.RegisterChannel(channel, false);
+            RemotingServices.Marshal(client, "ClientObject",
+                typeof(ClientObject));
+
+
+            server = (IPacmanPlatform)Activator.GetObject(
+                typeof(IPacmanPlatform),
+                "tcp://localhost:" + portServer + "/ServerObject");
+
+            if (server == null)
+            {
+                throw new SocketException();
+            }
+            server.Register(portClient.ToString(), "tcp://localhost:" + portClient + "/ClientObject");
         }
 
         public void SendStateServer(State s)
@@ -71,9 +69,6 @@ namespace pacman
         {
             return client.NumPlayers();
         }
-
-
-    public string GetPort() { return port.ToString(); }
 
         public void BroadcastChatMsg(string ChatMsg)
         {

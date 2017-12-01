@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
@@ -13,10 +14,10 @@ namespace Server
 
         private pacman.Server server;
 
-        public Form1()
+        public Form1(int port)
         {
             InitializeComponent();
-            server = new pacman.Server();
+            server = new pacman.Server(port);
         }
 
         private void Form1_Load(object sender, EventArgs e)

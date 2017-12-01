@@ -14,13 +14,9 @@ namespace PuppetMaster
 {
     class PuppetMaster
     {
-        private ServerObject _server;
+        private Tuple<string, ServerObject> _server;
         private Dictionary<string, ClientObject> _clients = new Dictionary<string, ClientObject>();
-        private Dictionary<string, PcsRemote> _kill = new Dictionary<string, PcsRemote>();
-
-        public PuppetMaster()
-        {
-        }
+        private readonly Dictionary<string, PcsRemote> _kill = new Dictionary<string, PcsRemote>();
 
         public void Execute(string s)
         {
@@ -46,22 +42,29 @@ namespace PuppetMaster
 
         public void StartServer(string pid, string pcsUrl, string serverUrl, int msecPerRound, int numPlayer)
         {
-            ConnectPcsServer(pcsUrl, pid);
-            _server = (ServerObject)Activator.GetObject(
+            string url = GetPort(serverUrl);
+            ConnectPcsServer(pcsUrl, pid, url);
+            _server = Tuple.Create(url, (ServerObject) Activator.GetObject(
                 typeof(ServerObject),
-                serverUrl);
+                serverUrl));
+            try
+            {
+                _server.Item2.SetMaxplayers(numPlayer);
+                _server.Item2.MsecPerRound = msecPerRound;
+            }catch(Exception e) { Debug.WriteLine(e.ToString()) ;KillAllProcess();}
         }
 
         public void StartClient(string pid, string pcsUrl, string clientUrl, int msecPerRound, int numPlayer,
             string fileName)
         {
-            ConnectPcsClient(pcsUrl, pid);
+            Debug.WriteLine(pid);
+            ConnectPcsClient(pcsUrl, pid, _server.Item1, GetPort(clientUrl));
             _clients.Add(pid, (ClientObject)Activator.GetObject(
                 typeof(ClientObject),
                 clientUrl));
         }
 
-        public void ConnectPcsServer(string url, string id)
+        public void ConnectPcsServer(string url, string id, string port)
         {
             PcsRemote serverPcs = (PcsRemote) Activator.GetObject(
                 typeof(PcsRemote),
@@ -73,10 +76,10 @@ namespace PuppetMaster
             else
             {
                 _kill.Add(id,serverPcs);
-                serverPcs.LaunchServer();
+                serverPcs.LaunchServer(port);
             }
         }
-        public void ConnectPcsClient(string url, string id)
+        public void ConnectPcsClient(string url, string id, string portServer, string portClient)
         {
             PcsRemote clientPcs = (PcsRemote)Activator.GetObject(
                 typeof(PcsRemote),
@@ -88,13 +91,20 @@ namespace PuppetMaster
             else
             {
                 _kill.Add(id, clientPcs);
-                clientPcs.LaunchClient();
+                clientPcs.LaunchClient(portServer, portClient);
             }
+        }
+
+        public string GetPort(string s)
+        {
+            char[] del = { ':', '/' };
+            string[] str = s.Split(del);
+            return str[4];
         }
 
         public void KillAllProcess()
         {
-            foreach (PcsRemote pcs in _kill.Values)
+            foreach (PcsRemote pcs in _kill.Values.Reverse())
             {
                 pcs.KillProcess();
             }

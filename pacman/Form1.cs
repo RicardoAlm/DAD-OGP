@@ -34,9 +34,9 @@ namespace pacman {
         public delegate void ReDrawPacman(State s);
         State newState;
 
-        public Form1() {
+        public Form1(int portServer, int portClient) {
             InitializeComponent();
-            client = new Client(this, new UpdateChat(this.ChangeChat), new ReDrawPacman(this.Redraw));
+            client = new Client(this, new UpdateChat(this.ChangeChat), new ReDrawPacman(this.Redraw), portServer, portClient);
             pacmans = new List<PictureBox>();
             label2.Visible = false;
             _id = 0;
@@ -225,63 +225,14 @@ namespace pacman {
 
                 client.SendStateServer(newState);
                 sendMessage=false;
-            }
-            /*if (ready)
-            {
-                foreach (Control x in this.Controls)
-                {
-                    /*if (x is PictureBox && x.Tag == "dead" && dead == client.NumPlayers())
-                    {
-                        label2.Text = "GAME OVER";
-                        label2.Visible = true;
-                        timer1.Stop();
-                    }
-                    if (x is PictureBox && x.Tag == "pacman")
-                    {
-                        /*if (((PictureBox)x).Bounds.IntersectsWith(redGhost.Bounds) ||//ghosts:
-                            ((PictureBox)x).Bounds.IntersectsWith(pinkGhost.Bounds) ||
-                             ((PictureBox)x).Bounds.IntersectsWith(yellowGhost.Bounds) ||
-                              ((PictureBox)x).Bounds.IntersectsWith(pictureBox1.Bounds) || //walls:
-                               ((PictureBox)x).Bounds.IntersectsWith(pictureBox2.Bounds) ||
-                                ((PictureBox)x).Bounds.IntersectsWith(pictureBox3.Bounds) ||
-                                 ((PictureBox)x).Bounds.IntersectsWith(pictureBox4.Bounds))
-                        {
-                            x.Visible = false;
-                            dead++;
-                            x.Tag = "dead";
-                            Debug.WriteLine("pacman" + pacmans[0].Bounds);
-                        }
-                        foreach (Control y in this.Controls)
-                        {
-                            if (y is PictureBox && y.Tag == "coin")
-                            {
-                                if (((PictureBox)x).Bounds.IntersectsWith(((PictureBox)y).Bounds))
-                                {
-                                    //this.Controls.Remove(y);
-                                    score++;
-                                    int i = (int)Char.GetNumericValue(x.Name[6]);
-                                    scores.Insert(i,scores[i]++);
-                                    if (score == total_coins)
-                                    {
-                                     
-                                        int winner = scores.IndexOf(scores.Max());
-                                        label2.Text ="PLAYER" + winner.ToString() + " WON!";
-                                        label2.Visible = true;
-                                        timer1.Stop();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }*/
+            }   
             
         }
 
         private void tbMsg_KeyDown(object sender, KeyEventArgs e) {
             if (e.KeyCode == Keys.Enter) {
-                tbChat.Text += "\r\n" + client.GetPort() + ":" + tbMsg.Text;
-                client.BroadcastChatMsg("\r\n" + client.GetPort() + ":" + tbMsg.Text);
+                tbChat.Text += "\r\n" +"Player" + _id + ":" + tbMsg.Text;
+                client.BroadcastChatMsg("\r\n" + "Player" + _id + ":" + tbMsg.Text);
                 tbMsg.Clear(); tbMsg.Enabled = false; this.Focus();
                 
             }

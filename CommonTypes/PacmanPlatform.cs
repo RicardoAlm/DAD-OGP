@@ -12,8 +12,7 @@ namespace pacman
 {
     public class ServerObject : MarshalByRefObject, IPacmanPlatform
     {
-
-        private int MSEC_PER_ROUND = 50;
+        public int MsecPerRound { get; set; } = 50;
         private int MAX_PLAYERS;
         private readonly List<string> _urls;
         private readonly List<State> _queueStates;
@@ -50,26 +49,21 @@ namespace pacman
 
         public void Register(string nick, string url)
         {
-            Debug.WriteLine("Registing Client...");
             if (!_clients.ContainsKey(nick))
             {
                 Debug.WriteLine("Client name available");
+                Debug.WriteLine(url);
                 ClientObject remoteObj = (ClientObject)Activator.GetObject(
                     typeof(ClientObject),
                     url);
-                if (remoteObj == null)
-                    System.Console.WriteLine("Could not locate server");
-                else
+                Debug.WriteLine("Adding Client to List...");
+                lock (_clients)
                 {
-                    Debug.WriteLine("Adding Client to List...");
-                    lock (_clients)
-                    {
-                        _clients.Add(nick, remoteObj);
-                        _urls.Add(url);
-                        _players++;
-                    }
-                    Debug.WriteLine("Client Added");
+                    _clients.Add(nick, remoteObj);
+                    _urls.Add(url);
+                    _players++;
                 }
+                Debug.WriteLine("Client Added");
             }
             else
             {
@@ -80,7 +74,7 @@ namespace pacman
         public void SetMaxplayers(int max)
         {
             MAX_PLAYERS = max;
-
+            
             new Thread(() =>
             {
                 int id = 0;
@@ -124,7 +118,7 @@ namespace pacman
                 while (!_gameStart){ Thread.Sleep(1); }
                 while (running)
                     {
-                        Thread.Sleep(MSEC_PER_ROUND); //+delay?
+                        Thread.Sleep(MsecPerRound); //+delay?
                         GameFinish();
                         IncrementePosition();
                         _queueStates.Clear();
@@ -460,7 +454,7 @@ namespace pacman
         readonly Form _form;
         readonly Delegate _displaydelegate;
         readonly Delegate _drawpDelegate;
-        private int _id;
+        public int _id { get; private set; }
         private bool _gameReady;
         private List<int> _msgSeqVector;
         private readonly List <ClientObject> _clients;
@@ -494,9 +488,8 @@ namespace pacman
                         urls[i]);
                     _clients.Add(remoteObj);
                 }
-            }
 
-            Debug.WriteLine(_clients.Count);
+            }
             Debug.WriteLine("List Updated");
         }
 
@@ -627,9 +620,6 @@ namespace pacman
     [Serializable]
     public class State
     {
-
-        public State() { }
-
         public int Id { get; set; }
         public int Round { get; set; }
         public List<int> CoordX { get; set; }
@@ -648,15 +638,23 @@ namespace pacman
     {
         private Process _process;
 
-        public PcsRemote() { }
-
-        public void LaunchServer()
+        public void LaunchServer(string port)
         {
-            _process = Process.Start("C:\\Users\\jp_s\\Documents\\Dad\\DAD-OGP\\Server\\bin\\Debug\\Server.exe");
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = "C:\\Users\\jp_s\\Documents\\Dad\\DAD-OGP\\Server\\bin\\Debug\\Server.exe",
+                Arguments = port
+            };
+            _process = Process.Start(startInfo);
         }
-        public void LaunchClient()
+        public void LaunchClient(string portServer, string portClient)
         {
-            _process = Process.Start("C:\\Users\\jp_s\\Documents\\Dad\\DAD-OGP\\pacman\\bin\\Debug\\pacman.exe");
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = "C:\\Users\\jp_s\\Documents\\Dad\\DAD-OGP\\pacman\\bin\\Debug\\pacman.exe",
+                Arguments = portServer + " " + portClient
+            };
+            _process = Process.Start(startInfo);
         }
 
         public void KillProcess()
