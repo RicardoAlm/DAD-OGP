@@ -21,7 +21,6 @@ namespace pacman
         private IPacmanPlatform server;
         private ClientObject client;
         public int player { get; private set; }
-        public delegate void getID(State s);
 
         public Client(Form1 form, Delegate d, Delegate p, int portServer, int portClient)
         {
@@ -73,6 +72,15 @@ namespace pacman
         public void BroadcastChatMsg(string ChatMsg)
         {
             client.SendMessage(ChatMsg);
+        }
+
+        public string GetMove()
+        {
+            if (client._script.Length !=0)
+            {
+                return client.GetScriptMove();
+            }
+            return "";
         }
 
         private bool CheckAvailableServerPort(int port)

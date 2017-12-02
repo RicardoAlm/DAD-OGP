@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -72,7 +73,6 @@ namespace pacman {
                 
             }
             else {
-                
                 Killpacmans(s);
                 DrawBoardPacmans(s);
                 RemoveCoins(s);
@@ -218,7 +218,12 @@ namespace pacman {
             if (sendMessage)
             {
                 newState.Id = _id;
-                newState.Key = GetKeyInput();
+
+                newState.Key = client.GetMove().ToLower();
+                if (newState.Key.Equals(""))
+                {
+                    newState.Key = GetKeyInput();
+                }
 
                 client.SendStateServer(newState);
                 sendMessage=false;

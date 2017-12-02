@@ -454,12 +454,13 @@ namespace pacman
         readonly Form _form;
         readonly Delegate _displaydelegate;
         readonly Delegate _drawpDelegate;
-        public int _id { get; private set; }
+        public int _id { get; set; }
         private bool _gameReady;
         private List<int> _msgSeqVector;
         private readonly List <ClientObject> _clients;
         private readonly Dictionary<Dictionary <List<int>, string>, int> _messageQueue;
         private readonly Dictionary<int, State> _allRoundsStates;
+        public string[] _script { get; set; } 
 
 
         public ClientObject(Form form, Delegate d, Delegate p)
@@ -471,6 +472,7 @@ namespace pacman
             _messageQueue = new Dictionary<Dictionary<List<int>, string>, int>();
             _gameReady = false;
             _allRoundsStates = new Dictionary<int, State>();
+            _script= new string[]{};
         }
 
         //---------------------Server Side-----------------------------------------------
@@ -508,10 +510,7 @@ namespace pacman
             _gameReady = true;
         }
 
-        public bool IsGameReady()
-        {
-            return _gameReady;
-        }
+        //-----------------------PuppetMaster-------------------------------------
 
         public string LocalState(int round)
         {
@@ -550,6 +549,20 @@ namespace pacman
             return localstate;
         }
 
+        public void SendScript(string scriptName)
+        {
+            string content = "";
+            string path = "C:\\Users\\jp_s\\Documents\\Dad\\DAD-OGP\\scripts\\";
+            _script = System.IO.File.ReadAllLines(path + scriptName);
+        }
+
+        public string GetScriptMove()
+        {
+            char[] del = { ',' };
+            string[] c = _script[0].Split(del);
+            _script = _script.Skip(1).ToArray(); //Eliminar 1 posição do array
+            return c[1];
+        }
 
 
         public int NumPlayers()

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
@@ -36,7 +37,7 @@ namespace PuppetMaster
                 if (function.Length == 7)
                 {
                     StartClient(function[1], function[2], function[3], Int32.Parse(function[4]),
-                        Int32.Parse(function[5]), function[7]);
+                        Int32.Parse(function[5]), function[6]);
                 }
             }
             else if (function[0].Equals("LocalState"))
@@ -62,9 +63,12 @@ namespace PuppetMaster
         {
             Debug.WriteLine("StartClientPID:" + pid);
             ConnectPcsClient(pcsUrl, pid, _server.Item1, GetPort(clientUrl));
-            _clients.Add(pid, (ClientObject)Activator.GetObject(
+            ClientObject client = (ClientObject) Activator.GetObject(
                 typeof(ClientObject),
-                clientUrl+"Object"));
+                clientUrl + "Object");
+            if (!fileName.Equals(""))
+                client.SendScript(fileName);
+            _clients.Add(pid, client);
         }
 
         public void ConnectPcsServer(string url, string id, string port)
