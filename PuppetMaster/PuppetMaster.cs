@@ -30,16 +30,19 @@ namespace PuppetMaster
             }
             else if (function[0].Equals("StartClient"))
             {
-                if (function.Length == 6)
-                {
-                    StartClient(function[1], function[2], function[3], Int32.Parse(function[4]),
-                        Int32.Parse(function[5]), "");
-                }
-                if (function.Length == 7)
-                {
-                    StartClient(function[1], function[2], function[3], Int32.Parse(function[4]),
-                        Int32.Parse(function[5]), function[6]);
-                }
+                new Thread (() =>
+                { 
+                    if (function.Length == 6)
+                    {
+                        StartClient(function[1], function[2], function[3], Int32.Parse(function[4]),
+                            Int32.Parse(function[5]), "");
+                    }
+                    if (function.Length == 7)
+                    {
+                        StartClient(function[1], function[2], function[3], Int32.Parse(function[4]),
+                            Int32.Parse(function[5]), function[6]);
+                    }
+                }).Start();
             }
             else
             {
@@ -53,6 +56,8 @@ namespace PuppetMaster
                     UnFreeze(function[1]);
                 else if (function[0].Equals("Wait"))
                     Wait(Int32.Parse(function[1]));
+                else if (function[0].Equals("Crash"))
+                    Crash(function[1]);
             }
         }
 
@@ -115,7 +120,7 @@ namespace PuppetMaster
         {
             string localState = _clients[pid].LocalState(round);
             Console.WriteLine(localState);
-            System.IO.File.WriteAllText(@"C:\Users\jp_s\Documents\Dad\DAD-OGP\PuppetMaster\bin\Debug\LocalState" + pid + "_" + round+".txt",localState);
+            System.IO.File.WriteAllText(AppDomain.CurrentDomain.BaseDirectory + @"..\..\..\PuppetMaster\bin\Debug\LocalState" + pid + "_" + round+".txt",localState);
         }
 
         public void Freeze(string pid)
@@ -134,6 +139,14 @@ namespace PuppetMaster
         {
             Console.WriteLine("Wait....");
             Thread.Sleep(ms);
+        }
+
+        public void Crash(string pid)
+        {
+            Console.WriteLine("Crash Pid:" + pid);
+
+            _kill[pid].KillProcess();
+            Console.WriteLine(pid + " Dead ...");
         }
 
         public string GetPort(string s)

@@ -17,6 +17,7 @@ namespace pacman
         private readonly List<string> _urls;
         private readonly List<State> _queueStates;
         private readonly Dictionary<string, ClientObject> _clients;
+        private readonly Dictionary<string, int> _playerIds;
         private int _players;
         private readonly State _board;
         private bool _gameStart;
@@ -30,6 +31,7 @@ namespace pacman
             _gameStart = false;
             _queueStates = new List<State>();
             _clients = new Dictionary<string, ClientObject>();
+            _playerIds = new Dictionary<string, int>();
             _urls = new List<string>();
             _players = 0;
             _board = new State();
@@ -86,6 +88,7 @@ namespace pacman
                     _board.Score.Insert(id, 0);
                     _board.CoordX.Insert(id, 8);
                     _board.CoordY.Insert(id, (id + 1) * 40);
+                    _playerIds.Add(clientNick, id) ;
                     _clients[clientNick].GetServerClients(clientNick, _urls, id);
                     id++;
                 }
@@ -122,10 +125,19 @@ namespace pacman
                         GameFinish();
                         IncrementePosition();
                         _queueStates.Clear();
-                        foreach (ClientObject c in _clients.Values)
+                        foreach (string nick in _clients.Keys.ToList())
                         {
-                            c.SendState(_board);
-                            c.MoveTheGame();
+                            try
+                            {
+                                _clients[nick].SendState(_board);
+                                _clients[nick].MoveTheGame();
+                            }
+                            catch (Exception e)
+                            {
+                                MAX_PLAYERS--;
+                                _clients.Remove(nick);
+                                _board.Alive[_playerIds[nick]] = false;
+                            }
                         }
                         if (_board.GameRunning == false)
                         {
@@ -362,10 +374,7 @@ namespace pacman
             int boardLeft = 0;
             int boardTop = 40;
             foreach (State s in _queueStates)
-            {
-                // Debug.WriteLine("iD:" + s.Id + "Key:" + s.Key);
-                // Debug.WriteLine("BoardCount:"+_board.CoordY.Count);     
-
+            {  
                 //checking first and after cause ghost can hit player too
                 if (Ghosts_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]))
                 {
@@ -557,7 +566,7 @@ namespace pacman
 
         public void SendScript(string scriptName)
         {
-            string path = "C:\\Users\\jp_s\\Documents\\Dad\\DAD-OGP\\scripts\\";
+            string path = AppDomain.CurrentDomain.BaseDirectory + @"..\..\..\scripts\";
             _script = System.IO.File.ReadAllLines(path + scriptName);
         }
 
@@ -706,7 +715,7 @@ namespace pacman
         {
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
-                FileName = "C:\\Users\\jp_s\\Documents\\Dad\\DAD-OGP\\Server\\bin\\Debug\\Server.exe",
+                FileName = AppDomain.CurrentDomain.BaseDirectory + @"..\..\..\Server\bin\Debug\Server.exe",
                 Arguments = port
             };
             _process = Process.Start(startInfo);
@@ -715,7 +724,7 @@ namespace pacman
         {
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
-                FileName = "C:\\Users\\jp_s\\Documents\\Dad\\DAD-OGP\\pacman\\bin\\Debug\\pacman.exe",
+                FileName = AppDomain.CurrentDomain.BaseDirectory + @"..\..\..\pacman\bin\Debug\pacman.exe",
                 Arguments = portServer + " " + portClient
             };
             _process = Process.Start(startInfo);
@@ -723,7 +732,7 @@ namespace pacman
 
         public void KillProcess()
         {
-            _process.Kill();
+                _process.Kill();
         }
 
     }

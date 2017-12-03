@@ -1,7 +1,9 @@
 StartServer S1 tcp://localhost:11000/PCS tcp://localhost:20001/Server 20 2
-StartClient C1 tcp://localhost:11000/PCS tcp://localhost:30001/Client 20 2 
-StartClient C2 tcp://localhost:11000/PCS tcp://localhost:30002/Client 20 2 
+StartClient C1 tcp://localhost:11000/PCS tcp://localhost:30001/Client 20 2 C2.csv
+StartClient C2 tcp://localhost:11000/PCS tcp://localhost:30002/Client 20 2 C4.csv
 Wait 500
-Freeze C1
-Wait 2000
-UnFreeze C1
+Freeze C2
+Wait 10000
+UnFreeze C2
+Wait 1000
+Crash C1
