@@ -444,7 +444,10 @@ namespace pacman
             _board.Round++;
         }
 
-        
+        public bool GetGameStart()
+        {
+            return _gameStart;
+        }
 
     }
 
@@ -460,7 +463,8 @@ namespace pacman
         private readonly List <ClientObject> _clients;
         private readonly Dictionary<Dictionary <List<int>, string>, int> _messageQueue;
         private readonly Dictionary<int, State> _allRoundsStates;
-        public string[] _script { get; set; } 
+        public string[] _script { get; set; }
+        public bool _freeze { get; set; }
 
 
         public ClientObject(Form form, Delegate d, Delegate p)
@@ -473,6 +477,7 @@ namespace pacman
             _gameReady = false;
             _allRoundsStates = new Dictionary<int, State>();
             _script= new string[]{};
+            _freeze = false;
         }
 
         //---------------------Server Side-----------------------------------------------
@@ -502,7 +507,8 @@ namespace pacman
         {
             _allRoundsStates.Add(s.Round,s);
             s.Id = _id;
-            _form.Invoke(_drawpDelegate, new object[] { s });
+            if(!_freeze)
+                _form.Invoke(_drawpDelegate, new object[] { s });
         }
 
         public void MoveTheGame()
@@ -551,7 +557,6 @@ namespace pacman
 
         public void SendScript(string scriptName)
         {
-            string content = "";
             string path = "C:\\Users\\jp_s\\Documents\\Dad\\DAD-OGP\\scripts\\";
             _script = System.IO.File.ReadAllLines(path + scriptName);
         }
@@ -583,24 +588,31 @@ namespace pacman
         /// <param name="id">Sending machine id</param>
         public void DisplayMessage(string msg, List<int> idVector, int id)
         {
-            new Thread(() =>
-           {
-               bool messageAddedQueue = false;
-               for (int i = 0; i < idVector.Count; i++)
-               {
-                   if ((idVector[i] - _msgSeqVector[i]) > 0 && i != id)
-                   {
-                       _messageQueue.Add(new Dictionary<List<int>, string> { { idVector, msg } }, id);
-                       messageAddedQueue = true;
-                   }
-               }
-               if (!messageAddedQueue)
-               {
-                   _msgSeqVector[id]++;
-                   _form.Invoke(_displaydelegate, new object[] { msg });
-                   VerifyMessage();
-               }
-           }).Start();
+                new Thread(() =>
+                {
+                    bool messageAddedQueue = false;
+                    for (int i = 0; i < idVector.Count; i++)
+                    {
+                        if ((idVector[i] - _msgSeqVector[i]) > 0 && i != id)
+                        {
+                            _messageQueue.Add(new Dictionary<List<int>, string> {{idVector, msg}}, id);
+                            messageAddedQueue = true;
+                        }
+                    }
+                    if (!messageAddedQueue)
+                    {
+                        if (!_freeze)
+                        {
+                            _msgSeqVector[id]++;
+                            _form.Invoke(_displaydelegate, new object[] {msg});
+                            VerifyMessage();
+                        }
+                        else
+                        {
+                            _messageQueue.Add(new Dictionary<List<int>, string> { { idVector, msg } }, id);
+                        }
+                    }
+                }).Start();
         }
 
         /// <summary>

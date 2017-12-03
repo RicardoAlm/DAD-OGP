@@ -74,6 +74,11 @@ namespace pacman
             client.SendMessage(ChatMsg);
         }
 
+        public bool GetFreeze()
+        {
+            return client._freeze;
+        }
+
         public string GetMove()
         {
             if (client._script.Length !=0)

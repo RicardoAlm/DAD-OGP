@@ -218,21 +218,23 @@ namespace pacman {
             if (sendMessage)
             {
                 newState.Id = _id;
-
-                newState.Key = client.GetMove().ToLower();
-                if (newState.Key.Equals(""))
+                if (!client.GetFreeze())
                 {
-                    newState.Key = GetKeyInput();
-                }
+                    newState.Key = client.GetMove().ToLower();
+                    if (newState.Key.Equals(""))
+                    {
+                        newState.Key = GetKeyInput();
+                    }
 
-                client.SendStateServer(newState);
+                    client.SendStateServer(newState);
+                }
                 sendMessage=false;
             }   
             
         }
 
         private void tbMsg_KeyDown(object sender, KeyEventArgs e) {
-            if (e.KeyCode == Keys.Enter) {
+            if (e.KeyCode == Keys.Enter && !client.GetFreeze()) {
                 tbChat.Text += "\r\n" +"Player" + _id + ":" + tbMsg.Text;
                 client.BroadcastChatMsg("\r\n" + "Player" + _id + ":" + tbMsg.Text);
                 tbMsg.Clear(); tbMsg.Enabled = false; this.Focus();

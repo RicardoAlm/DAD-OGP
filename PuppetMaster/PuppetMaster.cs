@@ -9,6 +9,7 @@ using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Security.Permissions;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using pacman;
 
@@ -40,8 +41,19 @@ namespace PuppetMaster
                         Int32.Parse(function[5]), function[6]);
                 }
             }
-            else if (function[0].Equals("LocalState"))
-                LocalState(function[1], Int32.Parse(function[2]));
+            else
+            {
+                while (!_server.Item2.GetGameStart())
+                {}
+                if (function[0].Equals("LocalState"))
+                    LocalState(function[1], Int32.Parse(function[2]));
+                else if (function[0].Equals("Freeze"))
+                    Freeze(function[1]);
+                else if (function[0].Equals("UnFreeze"))
+                    UnFreeze(function[1]);
+                else if (function[0].Equals("Wait"))
+                    Wait(Int32.Parse(function[1]));
+            }
         }
 
         public void StartServer(string pid, string pcsUrl, string serverUrl, int msecPerRound, int numPlayer)
@@ -95,11 +107,8 @@ namespace PuppetMaster
             {
                 throw new SocketException();
             }
-            else
-            {
-                _kill.Add(id, clientPcs);
-                clientPcs.LaunchClient(portServer, portClient);
-            }
+            _kill.Add(id, clientPcs);
+            clientPcs.LaunchClient(portServer, portClient);
         }
 
         public void LocalState(string pid, int round)
@@ -107,6 +116,24 @@ namespace PuppetMaster
             string localState = _clients[pid].LocalState(round);
             Console.WriteLine(localState);
             System.IO.File.WriteAllText(@"C:\Users\jp_s\Documents\Dad\DAD-OGP\PuppetMaster\bin\Debug\LocalState" + pid + "_" + round+".txt",localState);
+        }
+
+        public void Freeze(string pid)
+        {
+            Console.WriteLine("Freeze");
+            _clients[pid]._freeze = true;
+        }
+
+        public void UnFreeze(string pid)
+        {
+            Console.WriteLine("Unfreeze");
+            _clients[pid]._freeze = false;
+        }
+
+        public void Wait(int ms)
+        {
+            Console.WriteLine("Wait....");
+            Thread.Sleep(ms);
         }
 
         public string GetPort(string s)
