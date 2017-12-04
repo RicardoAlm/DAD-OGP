@@ -129,7 +129,7 @@ namespace pacman
             }).Start();
         }
 
-        public void SendUpdate(State s) //check if im Leader before calling this function
+        public void SendUpdate(State s) //check if is Leader before calling this function
         {
 
             foreach (int serverP in _serversUP.Keys)
