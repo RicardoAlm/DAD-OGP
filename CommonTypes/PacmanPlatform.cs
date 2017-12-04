@@ -14,9 +14,12 @@ namespace pacman
     {
         public int MsecPerRound { get; set; } = 50;
         private int MAX_PLAYERS;
+        private List<int> serverList; // here !!
         private readonly List<string> _urls;
         private readonly List<State> _queueStates;
         private readonly Dictionary<string, ClientObject> _clients;
+        private readonly Dictionary<int, ServerObject> _servers; //here
+        private Dictionary<int, ServerObject> _serversUP; //here
         private readonly Dictionary<string, int> _playerIds;
         private int _players;
         private readonly State _board;
@@ -25,12 +28,16 @@ namespace pacman
         private bool movementYellow;
         private bool movementPinkX;
         private bool movementPinkY;
+        private int leader;
+        
 
         public ServerObject()
         {
             _gameStart = false;
             _queueStates = new List<State>();
             _clients = new Dictionary<string, ClientObject>();
+            _servers = new Dictionary<int, ServerObject>(); //here
+            _serversUP = new Dictionary<int, ServerObject>(); //here
             _playerIds = new Dictionary<string, int>();
             _urls = new List<string>();
             _players = 0;
@@ -47,6 +54,8 @@ namespace pacman
             movementYellow = true;
             movementPinkX = true;
             movementPinkY = true;
+            leader = 0;
+        
         }
 
         public void Register(string nick, string url)
@@ -71,6 +80,69 @@ namespace pacman
             {
                 //TODO: Exception->nick already exists
             }
+        }
+
+        public void GetServerPorts(List<int> serverports)
+        {
+            this.serverList = serverports; //remove itself ?
+
+            for(int i = 0; i < serverports.Count; i++)
+            {
+                ServerObject serverObject = (ServerObject)Activator.GetObject(typeof(ServerObject),
+                    "tcp://localhost:" + serverports[i] + "/ServerObject");
+                _servers.Add(serverports[i],serverObject);
+                _serversUP.Add(serverports[i], serverObject);
+            }
+        }
+
+        public Boolean ImAlive()
+        {
+            return true;
+        }
+
+        public void LifeProof() // TO DO loop da função --> while running
+        {
+            new Thread(() =>
+            {
+                Thread.Sleep(1000);
+                foreach (int serverP in _servers.Keys)
+                {
+                    try
+                    {
+                        _servers[serverP].ImAlive();
+                        if (!_serversUP.ContainsKey(serverP))
+                        {
+                            _serversUP.Add(serverP, _servers[serverP]);
+                        }
+                        
+                    }catch(Exception)
+                    {
+                        _serversUP.Remove(serverP);
+                        if(leader!=0 && serverP == leader)
+                        {
+                            ElectNewLeader();
+                        }
+                    }
+                }
+                
+
+            }).Start();
+        }
+
+        public void SendUpdate(State s) //check if im Leader before calling this function
+        {
+
+            foreach (int serverP in _serversUP.Keys)
+            {
+                _serversUP[serverP].SendUpdate(this._board);
+            }
+            
+        }
+
+        public void ElectNewLeader() 
+        {
+            int port=0; //escolher lider com base no round e na lista _serversUP
+            this.leader = port;
         }
 
         public void SetMaxplayers(int max)

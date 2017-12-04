@@ -13,6 +13,7 @@ namespace pacman
     public class Server 
     {
         private readonly ServerObject server;
+        private List<int> serverPorts;
 
         public Server(int port)
         {
@@ -25,6 +26,7 @@ namespace pacman
                 typeof(ServerObject));
 
             Debug.WriteLine("Server Up");
+            serverPorts.Add(port);
             server.WaitForClientsInput();
         }
 
@@ -32,6 +34,7 @@ namespace pacman
             server.SetMaxplayers(max); 
         }
 
+        public void SetServers() { server.GetServerPorts(serverPorts); }
 
     }
 }
