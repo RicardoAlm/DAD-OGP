@@ -6,18 +6,33 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
+using System.Threading;
 
 namespace Server
 {
     public partial class Form1 : Form
     {
-
+        private bool leaderMissing=true;
         private pacman.Server server;
 
+        public Form1(int port,string leaderPort)
+        {
+            InitializeComponent();
+            server = new pacman.Server(port, leaderPort);
+        }
         public Form1(int port)
         {
             InitializeComponent();
-            server = new pacman.Server(port);
+            new Thread(() =>
+            {
+                while (leaderMissing)
+                {
+
+                }
+                if (textBox1.Text != null)
+                    server = new pacman.Server(port, textBox1.Text);
+            }).Start();
+            
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -34,6 +49,12 @@ namespace Server
         {
             if(MaxPlayers.Text != null)
                 server.SetMAXPLAYERS(Int32.Parse(MaxPlayers.Text));
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            
+            leaderMissing = false;
         }
     }
 }

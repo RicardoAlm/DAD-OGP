@@ -18,6 +18,8 @@ namespace pacman
         private readonly List<State> _queueStates;
         private readonly Dictionary<string, ClientObject> _clients;
         private readonly Dictionary<string, int> _playerIds;
+        private List<ServerObject> serverList;
+        private List<string> serverURLs;
         private int _players;
         private readonly State _board;
         private bool _gameStart;
@@ -25,6 +27,8 @@ namespace pacman
         private bool movementYellow;
         private bool movementPinkX;
         private bool movementPinkY;
+        private ServerObject serverLeader;
+        private bool leader { get; set; }
 
         public ServerObject()
         {
@@ -47,6 +51,9 @@ namespace pacman
             movementYellow = true;
             movementPinkX = true;
             movementPinkY = true;
+            serverList = new List<ServerObject>();
+            serverURLs = new List<string>();
+
         }
 
         public void Register(string nick, string url)
@@ -70,6 +77,35 @@ namespace pacman
             else
             {
                 //TODO: Exception->nick already exists
+            }
+        }
+
+        public void ConnectServer(string leaderURL, string myURL)
+        {
+            if (leaderURL.Equals(""))
+            {
+                WaitForClientsInput();
+            }
+            else
+            {
+                serverLeader = (ServerObject)Activator.GetObject(typeof(ServerObject),
+                leaderURL);
+                Console.WriteLine("ConnectServer with url: " + leaderURL);
+                RegisterServers(myURL);
+                //server.ImAlive();
+            }
+        }
+
+        public void RegisterServers(string url)
+        {
+            ServerObject server = (ServerObject)Activator.GetObject(typeof(ServerObject),
+                url);
+           
+            lock (serverList)
+            {
+                serverURLs.Add(url);
+                serverList.Add(server);
+                Console.WriteLine("RegisterServers with url: " + url);
             }
         }
 
@@ -118,33 +154,34 @@ namespace pacman
             bool running = true;
             new Thread(() =>
             {
-                while (!_gameStart){ Thread.Sleep(1); }
+                while (!_gameStart) { Thread.Sleep(1); }
                 while (running)
+                {
+                    Thread.Sleep(MsecPerRound); //+delay?
+                    GameFinish();
+                    IncrementePosition();
+                    _queueStates.Clear();
+                    foreach (string nick in _clients.Keys.ToList())
                     {
-                        Thread.Sleep(MsecPerRound); //+delay?
-                        GameFinish();
-                        IncrementePosition();
-                        _queueStates.Clear();
-                        foreach (string nick in _clients.Keys.ToList())
+                        try
                         {
-                            try
-                            {
-                                _clients[nick].SendState(_board);
-                                _clients[nick].MoveTheGame();
-                            }
-                            catch (Exception e)
-                            {
-                                MAX_PLAYERS--;
-                                _clients.Remove(nick);
-                                _board.Alive[_playerIds[nick]] = false;
-                            }
+                            _clients[nick].SendState(_board);
+                            _clients[nick].MoveTheGame();
                         }
-                        if (_board.GameRunning == false)
+                        catch (Exception e)
                         {
-                            running = false;
+                            MAX_PLAYERS--;
+                            _clients.Remove(nick);
+                            _board.Alive[_playerIds[nick]] = false;
                         }
                     }
+                    if (_board.GameRunning == false)
+                    {
+                        running = false;
+                    }
+                }
             }).Start();
+           
         }
 
         public void Coins_collision_pacman(int x,int y,int id)

@@ -14,17 +14,26 @@ namespace Server
         [STAThread]
         static void Main(string[] args)
         {
+        
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-
-            if (args.Length == 0)
+            Debug.WriteLine("Launch!!!");
+            if (args.Length==0)
                 {
                     Application.Run(new Form1(0));
                 }
             else
                 {
-                    Application.Run(new Form1(Int32.Parse(args[0])));
+                if (args[1].Equals("1"))
+                {
+                    Console.WriteLine("Launch!!!");
+                    Application.Run(new Form1(Int32.Parse(args[0]), ""));
+                }
+                else
+                {
+                    Application.Run(new Form1(Int32.Parse(args[0]), args[1]));
                 }
             }
         }
+    }
 }
