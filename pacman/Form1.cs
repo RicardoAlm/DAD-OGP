@@ -58,6 +58,7 @@ namespace pacman {
                     PictureBox pacman = new PictureBox();
                     pacman.BackColor = System.Drawing.Color.Transparent;
                     pacman.Image = Properties.Resources.Left;
+                    Debug.WriteLine("hwahhr " + pacman.Image.ToString());
                     pacman.Location = new System.Drawing.Point(s.CoordX[i], s.CoordY[i]);
                     pacman.Margin = new System.Windows.Forms.Padding(0);
                     pacman.Name = "pacman" + i.ToString();
@@ -66,6 +67,8 @@ namespace pacman {
                     pacman.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
                     pacman.TabIndex = 4;
                     pacman.TabStop = false;
+                    pacman.Image = Properties.Resources.Right;
+                    Debug.WriteLine("hwahhr " + pacman.Image.ToString());
                     this.Controls.Add(pacman);
                     pacmans.Insert(i, pacman);
                     
@@ -163,7 +166,27 @@ namespace pacman {
             for (int i = 0; i < client.NumPlayers(); i++ )
             {
                 PictureBox pacman = pacmans[i];
-                pacman.Location = new System.Drawing.Point(s.CoordX[i], s.CoordY[i]);
+                
+                    if (s.Keys[i] != null && !s.Keys[i].Equals(""))                 
+                    {                           
+                        if (s.Keys[i].Equals("left"))
+                        {
+                            pacman.Image = Properties.Resources.Left;
+                        }
+                        if (s.Keys[i].Equals("up"))
+                        {
+                            pacman.Image = Properties.Resources.Up;
+                        }
+                        if (s.Keys[i].Equals("down"))
+                        {
+                            pacman.Image = Properties.Resources.down;
+                        }
+                        if (s.Keys[i].Equals("right"))
+                        {
+                            pacman.Image = Properties.Resources.Right;
+                        }
+                        pacman.Location = new System.Drawing.Point(s.CoordX[i], s.CoordY[i]);
+                    }
                 //this.Controls.Add(pacman);
             }           
         }
@@ -213,7 +236,7 @@ namespace pacman {
         private void timer1_Tick(object sender, EventArgs e)
         {
             
-            label1.Text = "Score: " + score;
+            label1.Text = "Player"+_id + "  Score: " + score;
 
             if (sendMessage)
             {
