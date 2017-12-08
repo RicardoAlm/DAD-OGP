@@ -5,6 +5,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace Server
@@ -13,11 +14,22 @@ namespace Server
     {
 
         private pacman.Server server;
+        private bool _leaderMissing = true;
 
         public Form1(int port)
         {
             InitializeComponent();
-            server = new pacman.Server(port);
+            new Thread(() =>
+            {
+                while (_leaderMissing){}
+                server = new pacman.Server(port, portTextBox.Text);
+            }).Start();
+        }
+
+        public Form1(int port, string leaderUrl)
+        {
+            InitializeComponent();
+            server = new pacman.Server(port,leaderUrl);
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -34,6 +46,15 @@ namespace Server
         {
             if(MaxPlayers.Text != null)
                 server.SetMAXPLAYERS(Int32.Parse(MaxPlayers.Text));
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (portTextBox != null)
+            {
+                _leaderMissing = false;
+                button1.Enabled = false;
+            }
         }
     }
 }

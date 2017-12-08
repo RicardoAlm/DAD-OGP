@@ -18,13 +18,19 @@ namespace pacman
         private readonly List<State> _queueStates;
         private readonly Dictionary<string, ClientObject> _clients;
         private readonly Dictionary<string, int> _playerIds;
+        private List<Tuple<ServerObject,string>> _serverList;
+        private Dictionary<string,ServerObject> _serverDeads;
+        private Dictionary<string, bool> _serverUrls;
         private int _players;
-        private readonly State _board;
+        private State _board;
         private bool _gameStart;
         private bool movementRed;
         private bool movementYellow;
         private bool movementPinkX;
         private bool movementPinkY;
+        private bool _leader;
+        private ServerObject _serverLeader;
+        private string _myUrl;
 
         public ServerObject()
         {
@@ -43,6 +49,9 @@ namespace pacman
             _board.Alive = new List<bool>();
             _board.CoinsEaten = new List<bool>();
             _board.Keys = new List<string>();
+            _serverList = new List<Tuple<ServerObject, string>>();
+            _serverDeads = new Dictionary<string, ServerObject>();
+            _serverUrls = new Dictionary<string, bool>();
             _board.GameRunning = true;
             movementRed = true;
             movementYellow = true;
@@ -127,19 +136,23 @@ namespace pacman
                         GameFinish();
                         IncrementePosition();
                         _queueStates.Clear();
+                        new Thread(UpdateBackup).Start();
                         foreach (string nick in _clients.Keys.ToList())
                         {
-                            try
+                            new Thread(() =>
                             {
-                                _clients[nick].SendState(_board);
-                                _clients[nick].MoveTheGame();
-                            }
-                            catch (Exception e)
-                            {
-                                MAX_PLAYERS--;
-                                _clients.Remove(nick);
-                                _board.Alive[_playerIds[nick]] = false;
-                            }
+                                try
+                                {
+                                    _clients[nick].SendState(_board);
+                                    _clients[nick].MoveTheGame();
+                                }
+                                catch (Exception)
+                                {
+                                    MAX_PLAYERS--;
+                                    _clients.Remove(nick);
+                                    _board.Alive[_playerIds[nick]] = false;
+                                }
+                            }).Start();
                         }
                         if (_board.GameRunning == false)
                         {
@@ -147,6 +160,42 @@ namespace pacman
                         }
                     }
             }).Start();
+        }
+
+        public void UpdateBackup()
+        {
+            Dictionary<string, bool> clone = _serverUrls;
+            foreach (Tuple<ServerObject, string> backup in _serverList.ToList())
+            {
+                if (clone[backup.Item2])
+                {
+                    lock (_serverUrls)
+                    {
+                        backup.Item1.BackChangeBoard(_board);
+                        clone.Remove(backup.Item2);
+                        _serverUrls[backup.Item2] = false;
+                    }
+                }
+                else
+                {
+                    _serverDeads.Add(backup.Item2, backup.Item1);
+                    lock (_serverList)
+                    {
+                        _serverList.Remove(backup);
+                    }
+                }
+            }
+            foreach (string backup in clone.Keys.ToList())
+            {
+                if (!clone[backup]) continue;
+                lock (_serverList)
+                {
+                    _serverList.Add(new Tuple<ServerObject, string>(_serverDeads[backup], backup));
+                    _serverDeads[backup].BackChangeBoard(_board);
+                    _serverDeads.Remove(backup);
+                    _serverUrls[backup] = false;
+                }
+            }
         }
 
         public void Coins_collision_pacman(int x,int y,int id)
@@ -469,6 +518,76 @@ namespace pacman
             return _gameStart;
         }
 
+        public void SetGameStart(bool state)
+        {
+            _gameStart = state;
+        }
+
+        //-----------------------Replication-----------------------------------
+        public void ConnectServer(string myUrl, string leaderUrl)
+        {
+           if (leaderUrl.Equals("leader"))
+            {
+                WaitForClientsInput();
+                _leader = true;
+            }
+            else
+            {
+                //TODO-> Not Primary Server
+                _leader = false;
+                _myUrl = myUrl;
+                _serverLeader = (ServerObject)Activator.GetObject(typeof(ServerObject),
+                    leaderUrl);
+                Debug.WriteLine("ConnectServer with url: " + leaderUrl);
+                _serverLeader.RegisterServers(myUrl);
+                new Thread(() =>
+                {
+                    //while (!_gameStart){}
+                    while (!_leader)
+                    {
+                        Thread.Sleep(MsecPerRound);
+                        _serverLeader.ServersAlive(_myUrl);
+                    }  
+                }).Start();
+            }
+        }
+
+        public void RegisterServers(string url)
+        {
+            ServerObject server;
+            try
+            {
+                server = (ServerObject)Activator.GetObject(typeof(ServerObject),
+                    url);
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.ToString());
+            }
+            lock (_serverList)
+            {
+                _serverUrls.Add(url, true);
+                _serverList.Add(new Tuple<ServerObject,string>(server,url));
+                Debug.WriteLine("RegisterServers with url: " + url);
+            }
+        }
+
+
+        public void BackChangeBoard(State s)
+        {
+            _board = s;
+            Debug.WriteLine(_myUrl+ ": " + s.Round);
+        }
+
+        public void ServersAlive(string url)
+        {
+            lock (_serverUrls)
+            {
+                _serverUrls[url] = true;
+            }
+        }
+
+
     }
 
 
@@ -723,12 +842,12 @@ namespace pacman
     {
         private Process _process;
 
-        public void LaunchServer(string port)
+        public void LaunchServer(string port, string leaderURl)
         {
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
                 FileName = AppDomain.CurrentDomain.BaseDirectory + @"..\..\..\Server\bin\Debug\Server.exe",
-                Arguments = port
+                Arguments = port + " " + leaderURl
             };
             _process = Process.Start(startInfo);
         }

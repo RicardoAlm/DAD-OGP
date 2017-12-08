@@ -30,11 +30,13 @@
         {
             this.MaxPlayers = new System.Windows.Forms.TextBox();
             this.Register = new System.Windows.Forms.Button();
+            this.portTextBox = new System.Windows.Forms.TextBox();
+            this.button1 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // MaxPlayers
             // 
-            this.MaxPlayers.Location = new System.Drawing.Point(62, 68);
+            this.MaxPlayers.Location = new System.Drawing.Point(86, 71);
             this.MaxPlayers.Name = "MaxPlayers";
             this.MaxPlayers.Size = new System.Drawing.Size(148, 20);
             this.MaxPlayers.TabIndex = 0;
@@ -42,19 +44,38 @@
             // 
             // Register
             // 
-            this.Register.Location = new System.Drawing.Point(274, 68);
+            this.Register.Location = new System.Drawing.Point(251, 69);
             this.Register.Name = "Register";
             this.Register.Size = new System.Drawing.Size(75, 23);
             this.Register.TabIndex = 1;
-            this.Register.Text = "button1";
+            this.Register.Text = "Num Players";
             this.Register.UseVisualStyleBackColor = true;
             this.Register.Click += new System.EventHandler(this.Register_Click);
+            // 
+            // portTextBox
+            // 
+            this.portTextBox.Location = new System.Drawing.Point(86, 45);
+            this.portTextBox.Name = "portTextBox";
+            this.portTextBox.Size = new System.Drawing.Size(148, 20);
+            this.portTextBox.TabIndex = 2;
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(251, 43);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(75, 23);
+            this.button1.TabIndex = 3;
+            this.button1.Text = "Port";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(416, 322);
+            this.Controls.Add(this.button1);
+            this.Controls.Add(this.portTextBox);
             this.Controls.Add(this.Register);
             this.Controls.Add(this.MaxPlayers);
             this.Margin = new System.Windows.Forms.Padding(2);
@@ -70,6 +91,8 @@
 
         private System.Windows.Forms.TextBox MaxPlayers;
         private System.Windows.Forms.Button Register;
+        private System.Windows.Forms.TextBox portTextBox;
+        private System.Windows.Forms.Button button1;
     }
 }
 

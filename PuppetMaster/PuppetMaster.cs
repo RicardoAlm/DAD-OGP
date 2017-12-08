@@ -100,7 +100,14 @@ namespace PuppetMaster
             else
             {
                 _kill.Add(id,serverPcs);
-                serverPcs.LaunchServer(port);
+                if (_server == null)
+                {
+                    serverPcs.LaunchServer(port, "leader");
+                }
+                else
+                {
+                    serverPcs.LaunchServer(port, _server.Item1);
+                }
             }
         }
         public void ConnectPcsClient(string url, string id, string portServer, string portClient)

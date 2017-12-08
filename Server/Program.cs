@@ -23,7 +23,7 @@ namespace Server
                 }
             else
                 {
-                    Application.Run(new Form1(Int32.Parse(args[0])));
+                    Application.Run(new Form1(Int32.Parse(args[0]), args[1]));
                 }
             }
         }
