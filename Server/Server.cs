@@ -21,7 +21,10 @@ namespace pacman
             if (port == 0)
             {
                 if (leaderUrl.Equals("leader"))
+                {
                     port = 8086;
+                    leaderUrl = "tcp://localhost:" + port + "/ServerObject";
+                }
                 else
                 {
                     Random rnd = new Random();
@@ -54,7 +57,7 @@ namespace pacman
 
         public void SetMAXPLAYERS(int max)
         {
-            server.SetMaxplayers(max);
+            server.Start(max);
         }
 
         private bool CheckAvailableServerPort(int port)

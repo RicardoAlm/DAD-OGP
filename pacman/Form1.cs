@@ -48,6 +48,11 @@ namespace pacman {
 
         public void Redraw(State s)
         {
+            if (!client.GetServerUrl().Equals(s.Leader))
+            {
+                client.newLeader(s.Leader);
+            }
+
             if (s.Round == 1)
             {
                 scores = new List<int>(Enumerable.Repeat(0, client.NumPlayers()));
@@ -83,6 +88,7 @@ namespace pacman {
                 MoveGhost(s);
                 EndGame(s);
             }
+           
             sendMessage = true;
         }
 
@@ -248,7 +254,7 @@ namespace pacman {
                     {
                         newState.Key = GetKeyInput();
                     }
-
+                    
                     client.SendStateServer(newState);
                 }
                 sendMessage=false;

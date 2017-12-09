@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Collections;
 using System.Threading;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Runtime.Serialization.Formatters;
 
 namespace pacman
@@ -14,13 +15,19 @@ namespace pacman
     {
         public int MsecPerRound { get; set; } = 50;
         private int MAX_PLAYERS;
-        private readonly List<string> _urls;
+        private List<string> _urls;
         private readonly List<State> _queueStates;
-        private readonly Dictionary<string, ClientObject> _clients;
+        private Dictionary<string, ClientObject> _clients;
         private readonly Dictionary<string, int> _playerIds;
-        private List<Tuple<ServerObject,string>> _serverList;
-        private Dictionary<string,ServerObject> _serverDeads;
+        //---------------------Replication
+        private List<Tuple<ServerObject, string>> _serverList;
+        private List<Tuple<ServerObject, string>> _serverListQueue;
+        private Dictionary<string, ServerObject> _serverDeads;
+        private Dictionary<string, ServerObject> _serverAll;
         private Dictionary<string, bool> _serverUrls;
+        public bool _registered;
+        private bool changing;
+        //-------------------------------------------------
         private int _players;
         private State _board;
         private bool _gameStart;
@@ -31,9 +38,13 @@ namespace pacman
         private bool _leader;
         private ServerObject _serverLeader;
         private string _myUrl;
+        private bool _running = true;
 
         public ServerObject()
         {
+            _registered = false;
+            _serverListQueue = new List<Tuple<ServerObject, string>>();
+            _serverAll = new Dictionary<string, ServerObject>();
             _gameStart = false;
             _queueStates = new List<State>();
             _clients = new Dictionary<string, ClientObject>();
@@ -57,6 +68,7 @@ namespace pacman
             movementYellow = true;
             movementPinkX = true;
             movementPinkY = true;
+            changing = false;
         }
 
         public void Register(string nick, string url)
@@ -65,7 +77,7 @@ namespace pacman
             {
                 Debug.WriteLine("Client name available");
                 Debug.WriteLine(url);
-                ClientObject remoteObj = (ClientObject)Activator.GetObject(
+                ClientObject remoteObj = (ClientObject) Activator.GetObject(
                     typeof(ClientObject),
                     url);
                 Debug.WriteLine("Adding Client to List...");
@@ -83,23 +95,70 @@ namespace pacman
             }
         }
 
-        public void SetMaxplayers(int max)
+        public void SetMaxPlayers(int max)
         {
             MAX_PLAYERS = max;
-            
+        }
+
+        public void SetServerUrlList(Dictionary<string, bool> s)
+        {
+            _serverUrls = s;
+            changing = true;
+            foreach (var url in _serverUrls.Keys)
+            {
+                if (!_serverAll.ContainsKey(url))
+                {
+                    _serverAll.Add(url, (ServerObject)Activator.GetObject(typeof(ServerObject),
+                        url));
+                }
+            }
+            changing = false;
+        }
+
+        public void SetClientsConnection(List<string> urls)
+        {
+            foreach (var url in urls)
+            {
+                Register(GetPort(url),url);
+            }
+        }
+
+        public string GetPort(string s)
+        {
+            char[] del = { ':', '/' };
+            string[] str = s.Split(del);
+            return str[4];
+        }
+
+        public void SetServerList(string s)
+        {
+            lock (_serverList)
+            {
+                _serverList.Clear();
+                _serverList.Add(new Tuple<ServerObject, string>(_serverAll[s],s));
+            }
+        }
+
+        public void Start(int max)
+        {
+            SetMaxPlayers(max);
+
             new Thread(() =>
             {
                 int id = 0;
-                while (_players != MAX_PLAYERS) { Thread.Sleep(1); } 
-                foreach(string clientNick in _clients.Keys)
+                while (_players != MAX_PLAYERS)
+                {
+                    Thread.Sleep(1);
+                }
+                foreach (string clientNick in _clients.Keys)
                 {
                     _board.Id = id;
-                    _board.Alive.Insert(id,true);
+                    _board.Alive.Insert(id, true);
                     _board.Score.Insert(id, 0);
                     _board.CoordX.Insert(id, 8);
                     _board.CoordY.Insert(id, (id + 1) * 40);
                     _board.Keys.Insert(id, "");
-                    _playerIds.Add(clientNick, id) ;
+                    _playerIds.Add(clientNick, id);
                     _clients[clientNick].GetServerClients(clientNick, _urls, id);
                     id++;
                 }
@@ -108,178 +167,253 @@ namespace pacman
                     _board.CoinsEaten.Insert(i, true);
                 }
                 _gameStart = true;
-                _board.GhostX.Insert(0,180);
-                _board.GhostY.Insert(0,73);
-                _board.GhostX.Insert(1,221);
-                _board.GhostY.Insert(1,273);
-                _board.GhostX.Insert(2,301);
-                _board.GhostY.Insert(2,72);
-                
+                _board.GhostX.Insert(0, 180);
+                _board.GhostY.Insert(0, 73);
+                _board.GhostX.Insert(1, 221);
+                _board.GhostY.Insert(1, 273);
+                _board.GhostX.Insert(2, 301);
+                _board.GhostY.Insert(2, 72);
+
+                Debug.WriteLine("Leader:" + _myUrl);
+                _board.Leader = _myUrl;
+
             }).Start();
         }
 
         //--- Server methods ---
-        public void GetKeyboardInput(State s) {
+        public void GetKeyboardInput(State s)
+        {
             _queueStates.Add(s);
         }
 
         public void WaitForClientsInput()
-        {
-            _board.Round = 0;
-            bool running = true;
+        { 
+            if (_board.Leader == null)
+            {
+                _board.Round = 1;
+            }
+
             new Thread(() =>
             {
-                while (!_gameStart){ Thread.Sleep(1); }
-                while (running)
+                int Round = _board.Round;
+                Debug.WriteLine("New Leader :" + Round);
+                while (!_gameStart)
+                {
+                    Thread.Sleep(1);
+                }
+
+
+                while (_running)
+                {
+                    Thread.Sleep(MsecPerRound); //+delay?
+                    GameFinish();
+                    IncrementePosition();
+                    _board.Round = Round;
+                    _board.Leader = _myUrl;
+                    _queueStates.Clear();
+                    UpdateBackup();
+                    foreach (string nick in _clients.Keys.ToList())
                     {
-                        Thread.Sleep(MsecPerRound); //+delay?
-                        GameFinish();
-                        IncrementePosition();
-                        _queueStates.Clear();
-                        new Thread(UpdateBackup).Start();
-                        foreach (string nick in _clients.Keys.ToList())
+                        new Thread(() =>
+                        {
+                            try
+                            {
+                                _clients[nick].SendState(_board);
+                                _clients[nick].MoveTheGame();
+
+                            }
+                            catch (Exception er)
+                            {
+                                Debug.WriteLine(er.StackTrace);
+                                MAX_PLAYERS--;
+                                _clients.Remove(nick);
+                                _board.Alive[_playerIds[nick]] = false;
+                                foreach (Tuple<ServerObject, string> backup in _serverList)
+                                {
+                                    new Thread(() =>
+                                    {
+                                        try{backup.Item1.SetMaxPlayers(MAX_PLAYERS);}
+                                        catch (Exception e){Debug.WriteLine(e.StackTrace);}
+                                    }).Start();
+                                }
+                            }
+                        }).Start();
+                    }
+                    if (_board.GameRunning == false)
+                    {
+                        _running = false;
+                        foreach (Tuple<ServerObject, string> backup in _serverList)
                         {
                             new Thread(() =>
                             {
-                                try
-                                {
-                                    _clients[nick].SendState(_board);
-                                    _clients[nick].MoveTheGame();
-                                }
-                                catch (Exception)
-                                {
-                                    MAX_PLAYERS--;
-                                    _clients.Remove(nick);
-                                    _board.Alive[_playerIds[nick]] = false;
-                                }
+                                try{backup.Item1._running = false;}
+                                catch (Exception){/* ignored */}
                             }).Start();
                         }
-                        if (_board.GameRunning == false)
-                        {
-                            running = false;
-                        }
                     }
+                    Round++;
+                }
+                Debug.WriteLine("Server Acabou o Jogo!");
             }).Start();
         }
 
         public void UpdateBackup()
         {
-            Dictionary<string, bool> clone = _serverUrls;
-            foreach (Tuple<ServerObject, string> backup in _serverList.ToList())
+            Dictionary<string, bool> serverAlive = _serverUrls;
+            Dictionary<string, ServerObject> PossibelDeadServers = new Dictionary<string, ServerObject>();
+            bool changes = false;
+            List<Tuple<ServerObject, string>> cloneList = _serverList;
+            List<Tuple<ServerObject, string>> roundServerAlive = new List<Tuple<ServerObject, string>>();
+
+            foreach (Tuple<ServerObject, string> backup in cloneList)
             {
-                if (clone[backup.Item2])
+                if (_serverUrls.ContainsKey(backup.Item2) && _serverUrls[backup.Item2])
                 {
-                    lock (_serverUrls)
-                    {
-                        backup.Item1.BackChangeBoard(_board);
-                        clone.Remove(backup.Item2);
-                        _serverUrls[backup.Item2] = false;
-                    }
+                    roundServerAlive.Add(backup);
+                    backup.Item1.BackChangeBoard(_board);
+                    serverAlive.Remove(backup.Item2);
+                    _serverUrls[backup.Item2] = false;
                 }
                 else
                 {
-                    _serverDeads.Add(backup.Item2, backup.Item1);
-                    lock (_serverList)
-                    {
-                        _serverList.Remove(backup);
-                    }
+                    changes = true;
+                    serverAlive.Remove(backup.Item2);
+                    if(!PossibelDeadServers.ContainsKey(backup.Item2))
+                        PossibelDeadServers.Add(backup.Item2, backup.Item1);
+
                 }
             }
-            foreach (string backup in clone.Keys.ToList())
+            foreach (string backupUrl in serverAlive.Keys.ToList())
             {
-                if (!clone[backup]) continue;
-                lock (_serverList)
+                if (serverAlive[backupUrl])
                 {
-                    _serverList.Add(new Tuple<ServerObject, string>(_serverDeads[backup], backup));
-                    _serverDeads[backup].BackChangeBoard(_board);
-                    _serverDeads.Remove(backup);
-                    _serverUrls[backup] = false;
+                    roundServerAlive.Add(new Tuple<ServerObject, string>(_serverAll[backupUrl], backupUrl));
+                    changes = true;
+                    _serverAll[backupUrl].BackChangeBoard(_board);
+                    _serverUrls[backupUrl] = false;
+                }
+                else
+                {
+                    PossibelDeadServers.Add(backupUrl, _serverAll[backupUrl]);
                 }
             }
+
+            lock (_serverList)
+            {
+                _serverDeads.Clear();
+                _serverDeads = PossibelDeadServers;
+                _serverList.Clear();
+                _serverList = roundServerAlive;
+            }
+
+            if (_serverListQueue.Any())
+            {
+                foreach (Tuple<ServerObject, string> alive in _serverListQueue)
+                {
+                    _serverList.Add(alive);
+                    _serverAll.Add(alive.Item2, alive.Item1);
+                    alive.Item1._registered = true;
+                    _serverUrls.Add(alive.Item2, true);
+                    new Thread(UpdateBackUpClientsList).Start();
+                }
+
+                _serverListQueue.Clear();
+                UpdateBackUpServerUrlList();
+
+                changes = true;
+            }
+
+            if (changes){new Thread(() => { UpdateBackUpServerList(_serverList); }).Start();}
         }
 
-        public void Coins_collision_pacman(int x,int y,int id)
+        public void Coins_collision_pacman(int x, int y, int id)
         {
             for (int i = 1; i < 9; i++)
             {
                 if (_board.CoinsEaten[i - 1] == true && x > 0 && x < 23 && y < 40 * i + 15 && y > 40 * i - 25)
                 {
-                        _board.CoinsEaten[i - 1] = false;
-                        _board.Score[id] += 1;
-                        return;
+                    _board.CoinsEaten[i - 1] = false;
+                    _board.Score[id] += 1;
+                    return;
                 }
 
                 else if (_board.CoinsEaten[i + 7] == true && x > 23 && x < 63 && y < 40 * i + 15 && y > 40 * i - 25)
                 {
-                        _board.CoinsEaten[i + 7] = false;
-                        _board.Score[id] += 1;
-                        return;
+                    _board.CoinsEaten[i + 7] = false;
+                    _board.Score[id] += 1;
+                    return;
                 }
 
-                else if (_board.CoinsEaten[i + 12] == true && i > 3 && x > 63 && x < 103 && y < 40 * i + 15 && y > 40 * i - 25)
+                else if (_board.CoinsEaten[i + 12] == true && i > 3 && x > 63 && x < 103 && y < 40 * i + 15 &&
+                         y > 40 * i - 25)
                 {
-                        _board.CoinsEaten[i + 12] = false;
-                        _board.Score[id] += 1;
-                        return;
+                    _board.CoinsEaten[i + 12] = false;
+                    _board.Score[id] += 1;
+                    return;
                 }
-                
-                else if (_board.CoinsEaten[i + 20] == true && i < 6 && x > 103 && x < 143 && y < 40 * i + 15 && y > 40 * i - 25)
-                {  
-                            _board.CoinsEaten[i + 20] = false;
-                            _board.Score[id] += 1;
-                            return;
+
+                else if (_board.CoinsEaten[i + 20] == true && i < 6 && x > 103 && x < 143 && y < 40 * i + 15 &&
+                         y > 40 * i - 25)
+                {
+                    _board.CoinsEaten[i + 20] = false;
+                    _board.Score[id] += 1;
+                    return;
                 }
 
                 else if (_board.CoinsEaten[i + 25] == true && x > 143 && x < 183 && y < 40 * i + 15 && y > 40 * i - 25)
                 {
-                        _board.CoinsEaten[i + 25] = false;
-                        _board.Score[id] += 1;
-                        return;
+                    _board.CoinsEaten[i + 25] = false;
+                    _board.Score[id] += 1;
+                    return;
                 }
 
                 else if (_board.CoinsEaten[i + 33] == true && x > 183 && x < 223 && y < 40 * i + 15 && y > 40 * i - 25)
                 {
-                        _board.CoinsEaten[i + 33] = false;
-                        _board.Score[id] += 1;
-                        return;
+                    _board.CoinsEaten[i + 33] = false;
+                    _board.Score[id] += 1;
+                    return;
                 }
 
-                else if (_board.CoinsEaten[i + 38] == true && i > 3 && x > 223 && x < 263 && y < 40 * i + 15 && y > 40 * i - 25)
+                else if (_board.CoinsEaten[i + 38] == true && i > 3 && x > 223 && x < 263 && y < 40 * i + 15 &&
+                         y > 40 * i - 25)
                 {
-                            _board.CoinsEaten[i + 38] = false;
-                            _board.Score[id] += 1;
-                            return;
+                    _board.CoinsEaten[i + 38] = false;
+                    _board.Score[id] += 1;
+                    return;
                 }
 
-                else if (_board.CoinsEaten[i + 46] == true && i < 6 && x > 263 && x < 303 && y < 40 * i + 15 && y > 40 * i - 25)
+                else if (_board.CoinsEaten[i + 46] == true && i < 6 && x > 263 && x < 303 && y < 40 * i + 15 &&
+                         y > 40 * i - 25)
                 {
-                            _board.CoinsEaten[i + 46] = false;
-                            _board.Score[id] += 1;
-                            return;
+                    _board.CoinsEaten[i + 46] = false;
+                    _board.Score[id] += 1;
+                    return;
                 }
 
                 else if (_board.CoinsEaten[i + 51] == true && x > 303 && x < 343 && y < 40 * i + 15 && y > 40 * i - 25)
                 {
-                         _board.CoinsEaten[i + 51] = false;
-                         _board.Score[id] += 1;
-                         return;
+                    _board.CoinsEaten[i + 51] = false;
+                    _board.Score[id] += 1;
+                    return;
                 }
             }
         }
 
         public void GameFinish()
         {
-            if(!_board.CoinsEaten.Any(c => c == true) || !_board.Alive.Any(c => c == true))
+            if (!_board.CoinsEaten.Any(c => c == true) || !_board.Alive.Any(c => c == true))
             {
-
-                int indexMax = !_board.Score.Any() ? -1 : _board.Score.Select((value, index) => new { Value = value, Index = index }).Aggregate((a, b) => (a.Value > b.Value) ? a : b).Index;
+                int indexMax = !_board.Score.Any()
+                    ? -1
+                    : _board.Score.Select((value, index) => new {Value = value, Index = index})
+                        .Aggregate((a, b) => (a.Value > b.Value) ? a : b).Index;
 
                 _board.Winner = indexMax.ToString();
                 _board.GameRunning = false;
             }
         }
 
-        public bool Walls_collision_pacman(int x,int y)
+        public bool Walls_collision_pacman(int x, int y)
         {
             //wall1 x=88 Y=40 w15 h95
             //wall2 x=248 y=40 w15 h95
@@ -312,26 +446,29 @@ namespace pacman
             else if (x > 263 && x < 303 && y > 215)
             {
                 return true;
-            }            
+            }
             return false;
         }
 
         public bool Ghosts_collision_pacman(int x, int y)
-        {            
+        {
             //hit redGhost
-            if (x > _board.GhostX[0] - 25 && x < _board.GhostX[0] + 30 && y < _board.GhostY[0] + 30 && y > _board.GhostY[0] - 25)
+            if (x > _board.GhostX[0] - 25 && x < _board.GhostX[0] + 30 && y < _board.GhostY[0] + 30 &&
+                y > _board.GhostY[0] - 25)
             {
                 return true;
             }
 
             //hit yellowGhost
-            else if (x > _board.GhostX[1] - 25 && x < _board.GhostX[1] + 30 && y < _board.GhostY[1] + 30 && y > _board.GhostY[1] - 25)
+            else if (x > _board.GhostX[1] - 25 && x < _board.GhostX[1] + 30 && y < _board.GhostY[1] + 30 &&
+                     y > _board.GhostY[1] - 25)
             {
                 return true;
             }
 
             //hit pinkGhost
-            else if (x > _board.GhostX[2] - 25 && x < _board.GhostX[2] + 30 && y < _board.GhostY[2] + 30 && y > _board.GhostY[2] - 25)
+            else if (x > _board.GhostX[2] - 25 && x < _board.GhostX[2] + 30 && y < _board.GhostY[2] + 30 &&
+                     y > _board.GhostY[2] - 25)
             {
                 return true;
             }
@@ -339,23 +476,23 @@ namespace pacman
         }
 
         public bool Walls_collision_redghost(int x)
-        {            
+        {
             //hit first wall
             if (x < 103)
             {
-                movementRed=true;
+                movementRed = true;
             }
 
             //hit second wall
             else if (x > 218)
             {
-                movementRed=false;                
+                movementRed = false;
             }
             return movementRed;
         }
 
         public bool Walls_collision_yellowghost(int x)
-        {            
+        {
             //hit third wall
             if (x < 143)
             {
@@ -369,13 +506,13 @@ namespace pacman
             }
             return movementYellow;
         }
-        
+
         public bool Walls_collision_pinkghostX(int x, int y)
         {
             int boardRight = 320;
             int boardLeft = 0;
-            
-            if (x > boardRight )//- 15)
+
+            if (x > boardRight) //- 15)
             {
                 movementPinkX = !movementPinkX;
             }
@@ -414,7 +551,7 @@ namespace pacman
         {
             int boardTop = 40;
             int boardBottom = 320;
-           
+
             if (y < boardTop)
             {
                 movementPinkY = !movementPinkY;
@@ -433,62 +570,83 @@ namespace pacman
             int boardBottom = 320;
             int boardLeft = 0;
             int boardTop = 40;
-            foreach (State s in _queueStates)
-            {  
+            foreach (State s in _queueStates.ToList())
+            {
                 //checking first and after cause ghost can hit player too
                 if (Ghosts_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]))
                 {
                     _board.Alive[s.Id] = false;
                 }
-                
-                if (_board.Alive[s.Id] == true)
+
+                if (_board.Alive[s.Id])
                 {
                     if (s.Key.Equals("up"))
                     {
-                        if (!(_board.CoordY[s.Id] - speed < boardTop)) { _board.CoordY[s.Id] -= speed; _board.Keys[s.Id] = "up"; }
+                        if (!(_board.CoordY[s.Id] - speed < boardTop))
+                        {
+                            _board.CoordY[s.Id] -= speed;
+                            _board.Keys[s.Id] = "up";
+                        }
                     }
                     else if (s.Key.Equals("down"))
                     {
-                        if (!(_board.CoordY[s.Id] + speed > boardBottom)) { _board.CoordY[s.Id] += speed; _board.Keys[s.Id] = "down"; }
+                        if (!(_board.CoordY[s.Id] + speed > boardBottom))
+                        {
+                            _board.CoordY[s.Id] += speed;
+                            _board.Keys[s.Id] = "down";
+                        }
                     }
                     else if (s.Key.Equals("left"))
                     {
-                        if (!(_board.CoordX[s.Id] - speed < boardLeft)) { _board.CoordX[s.Id] -= speed; _board.Keys[s.Id] = "left"; }
+                        if (!(_board.CoordX[s.Id] - speed < boardLeft))
+                        {
+                            _board.CoordX[s.Id] -= speed;
+                            _board.Keys[s.Id] = "left";
+                        }
 
                     }
                     else if (s.Key.Equals("right"))
                     {
-                        if (!(_board.CoordX[s.Id] + speed > boardRight)) { _board.CoordX[s.Id] += speed; _board.Keys[s.Id] = "right"; }
+                        if (!(_board.CoordX[s.Id] + speed > boardRight))
+                        {
+                            _board.CoordX[s.Id] += speed;
+                            _board.Keys[s.Id] = "right";
+                        }
 
                     }
-                    else if (s.Key.Equals("")) { _board.Keys[s.Id] = ""; }
+                    else if (s.Key.Equals(""))
+                    {
+                        _board.Keys[s.Id] = "";
+                    }
 
                     //check if hits wall and ghost if does kill it
-                    if (Walls_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]) || Ghosts_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]))
+                    if (Walls_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]) ||
+                        Ghosts_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id]))
                     {
                         _board.Alive[s.Id] = false;
                     }
                     //
                     if (!s.Key.Equals(""))
                     {
-                        Coins_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id],s.Id);
+                        Coins_collision_pacman(_board.CoordX[s.Id], _board.CoordY[s.Id], s.Id);
                     }
                 }
-            }   
+            }
             //////////////GHOSTS//////////////    
             //redghost
             if (Walls_collision_redghost(_board.GhostX[0]))
             {
-                _board.GhostX[0] = _board.GhostX[0] + speed;                
+                _board.GhostX[0] = _board.GhostX[0] + speed;
             }
             else
             {
                 _board.GhostX[0] = _board.GhostX[0] - speed;
-            }//yellowghost
+            } //yellowghost
             if (Walls_collision_yellowghost(_board.GhostX[1]))
             {
                 _board.GhostX[1] = _board.GhostX[1] + speed;
-            }else
+            }
+            else
             {
                 _board.GhostX[1] = _board.GhostX[1] - speed;
             }
@@ -500,7 +658,7 @@ namespace pacman
             else
             {
                 _board.GhostX[2] = _board.GhostX[2] - speed;
-            }//pinkghostY
+            } //pinkghostY
             if (Walls_collision_pinkghostY(_board.GhostY[2]))
             {
                 _board.GhostY[2] = _board.GhostY[2] + speed;
@@ -509,8 +667,6 @@ namespace pacman
             {
                 _board.GhostY[2] = _board.GhostY[2] - speed;
             }
-
-            _board.Round++;
         }
 
         public bool GetGameStart()
@@ -526,65 +682,146 @@ namespace pacman
         //-----------------------Replication-----------------------------------
         public void ConnectServer(string myUrl, string leaderUrl)
         {
-           if (leaderUrl.Equals("leader"))
+            if (leaderUrl.Equals(myUrl))
             {
-                WaitForClientsInput();
                 _leader = true;
+                _myUrl = myUrl;
+                WaitForClientsInput();
             }
             else
             {
                 //TODO-> Not Primary Server
                 _leader = false;
                 _myUrl = myUrl;
-                _serverLeader = (ServerObject)Activator.GetObject(typeof(ServerObject),
+                _serverLeader = (ServerObject) Activator.GetObject(typeof(ServerObject),
                     leaderUrl);
                 Debug.WriteLine("ConnectServer with url: " + leaderUrl);
                 _serverLeader.RegisterServers(myUrl);
                 new Thread(() =>
                 {
-                    //while (!_gameStart){}
+                    while (!_registered){}
                     while (!_leader)
                     {
                         Thread.Sleep(MsecPerRound);
-                        _serverLeader.ServersAlive(_myUrl);
-                    }  
+                        try
+                        {
+                            _serverLeader.ServersAlive(_myUrl);
+                        }
+                        catch (Exception)
+                        {
+                            SelectLeader();
+                        }
+                        
+                    }
                 }).Start();
             }
+        }
+
+        public void SelectLeader()
+        {
+           var nextLeader = _serverList.First();
+            if (nextLeader.Item2.Equals(_myUrl))
+            {
+                _leader = true;
+                _serverUrls.Remove(_myUrl);
+                _players = 0;
+                _serverAll.Remove(nextLeader.Item2);
+                Debug.WriteLine(_myUrl + ": Sou leader");
+                WaitForClientsInput();
+            }
+            else
+            {
+                _serverLeader = nextLeader.Item1;
+                Debug.WriteLine(_myUrl + ": Fica Para a Proxima");
+            }
+            _serverList.Remove(nextLeader);
         }
 
         public void RegisterServers(string url)
         {
             ServerObject server;
             try
+                {
+                    server = (ServerObject) Activator.GetObject(typeof(ServerObject),
+                        url);
+                }
+                catch (Exception e) {throw new Exception(e.ToString());} 
+                _serverListQueue.Add(new Tuple<ServerObject, string>(server, url));
+                server.SetMaxPlayers(MAX_PLAYERS);
+        }
+
+
+    public void UpdateBackUpServerUrlList()
+    {
+        foreach (Tuple<ServerObject, string> backup in _serverList)
+        {
+            try
             {
-                server = (ServerObject)Activator.GetObject(typeof(ServerObject),
-                    url);
+                backup.Item1.SetServerUrlList(_serverUrls);
             }
             catch (Exception e)
             {
-                throw new Exception(e.ToString());
+                Debug.WriteLine(e.StackTrace);
             }
-            lock (_serverList)
+        }
+    }
+
+        public void UpdateBackUpClientsList()
+        {
+            foreach (Tuple<ServerObject, string> backup in _serverList)
             {
-                _serverUrls.Add(url, true);
-                _serverList.Add(new Tuple<ServerObject,string>(server,url));
-                Debug.WriteLine("RegisterServers with url: " + url);
+                new Thread(() =>
+                {
+                    try { backup.Item1.SetClientsConnection(_urls); }
+                    catch (Exception e) { Debug.WriteLine(e.StackTrace); }
+                }).Start();
             }
         }
 
+        public void UpdateBackUpServerList(List<Tuple<ServerObject, string>> s)
+      {
+            foreach (Tuple<ServerObject, string> backup in s.ToList())
+            {
+                new Thread(() =>
+                {
+                    try
+                    {
+                        foreach (var s1  in _serverList)
+                        {
+                            backup.Item1.SetServerList(s1.Item2);
+                        }
+                    }
+                    catch (Exception e) { Debug.WriteLine(e.StackTrace); }
+                }).Start();
+            }
+        }
 
         public void BackChangeBoard(State s)
         {
             _board = s;
-            Debug.WriteLine(_myUrl+ ": " + s.Round);
+            _gameStart = true;
         }
 
-        public void ServersAlive(string url)
+        public void ServersAlive(string url){_serverUrls[url] = true;}
+
+        public void DebugServerURLList()
         {
-            lock (_serverUrls)
+            Debug.WriteLine("------------ServerURlListUpdate------------------");
+            foreach (string b in _serverUrls.Keys.ToList())
             {
-                _serverUrls[url] = true;
+                Debug.WriteLine(b);
             }
+            Debug.WriteLine("-----------------------------------------------");
+        }
+
+        public void DebugServerList()
+        {
+            Debug.WriteLine("------------ServerListUpdate------------------");
+            foreach (Tuple<ServerObject,string> b in _serverList.ToList())
+            {
+                Debug.WriteLine(b);
+            }
+            Debug.WriteLine("-----------------------------------------------");
         }
 
 
@@ -644,10 +881,20 @@ namespace pacman
 
         public void SendState(State s)
         {
-            _allRoundsStates.Add(s.Round,s);
+            if (_allRoundsStates.Any())
+            {
+                Debug.WriteLine("Round Client:" + _allRoundsStates.Keys.Last() + " Server Round:" + s.Round);
+            }
+            if (!_allRoundsStates.ContainsKey(s.Round))
+            {
+                _allRoundsStates.Add(s.Round, s);
+            }
+
             s.Id = _id;
-            if(!_freeze)
-                _form.Invoke(_drawpDelegate, new object[] { s });
+            if (!_freeze)
+            {
+                _form.Invoke(_drawpDelegate, new object[] {s});
+            }
         }
 
         public void MoveTheGame()
@@ -836,6 +1083,7 @@ namespace pacman
         public string Winner { get; set; }
         public List<bool> Alive { get; set; }
         public List<bool> CoinsEaten { get; set; }
+        public string Leader { get; set; }
     }
 
     public class PcsRemote: MarshalByRefObject

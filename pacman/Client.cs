@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels.Tcp;
@@ -11,14 +7,13 @@ using System.Net.NetworkInformation;
 using System.Net;
 using System.Net.Sockets;
 using System.Diagnostics;
-using System.Threading;
 
 namespace pacman
 {
     class Client 
-    {
+    {   
         private TcpChannel channel = null;
-        private IPacmanPlatform server;
+        private Tuple<string, IPacmanPlatform> server;
         private ClientObject client;
         public int player { get; private set; }
 
@@ -47,21 +42,43 @@ namespace pacman
             RemotingServices.Marshal(client, "ClientObject",
                 typeof(ClientObject));
 
-
-            server = (IPacmanPlatform)Activator.GetObject(
-                typeof(IPacmanPlatform),
-                "tcp://localhost:" + portServer + "/ServerObject");
+            String serverUrl = "tcp://localhost:" + portServer + "/ServerObject";
+            server = new Tuple<string, IPacmanPlatform> (serverUrl,(IPacmanPlatform)Activator.GetObject(
+                typeof(IPacmanPlatform),serverUrl));
 
             if (server == null)
             {
                 throw new SocketException();
             }
-            server.Register(portClient.ToString(), "tcp://localhost:" + portClient + "/ClientObject");
+            server.Item2.Register(portClient.ToString(), "tcp://localhost:" + portClient + "/ClientObject");
+        }
+
+        public void newLeader(string serverUrl)
+        {
+            server = new Tuple<string, IPacmanPlatform>(serverUrl, (IPacmanPlatform)Activator.GetObject(
+                typeof(IPacmanPlatform), serverUrl));
+        }
+
+        public string GetServerUrl()
+        {
+            return server.Item1;
         }
 
         public void SendStateServer(State s)
         {
-            server.GetKeyboardInput(s);
+         //   string urlServer = GetServerUrl();
+            try
+            {
+                Debug.WriteLine("Tentar enviar");
+                server.Item2.GetKeyboardInput(s);
+                Debug.WriteLine("Consegui");
+            }
+            catch(Exception e)
+            {
+                Debug.WriteLine(e.StackTrace);
+             //   while (urlServer.Equals(server.Item1)){ }
+            //    new server.Item2.GetKeyboardInput(s);
+            }
         }
 
         public int NumPlayers()

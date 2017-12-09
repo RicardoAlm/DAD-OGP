@@ -70,7 +70,7 @@ namespace PuppetMaster
                 serverUrl+"Object"));
             try
             {
-                _server.Item2.SetMaxplayers(numPlayer);
+                _server.Item2.Start(numPlayer);
                 _server.Item2.MsecPerRound = msecPerRound;
             }catch(Exception e) { Debug.WriteLine(e.ToString()) ;KillAllProcess();}
         }
